@@ -189,17 +189,18 @@ function parseSheet(rows) {
 
   if(!csatRow||!slaRow||!ttrRow||!incomRow) throw new Error("No se encontraron las filas de KPIs.");
 
-  // Find Prodon columns: incoming row has "Prodon" starting from some col
-  // We look at incomRow for "Prodon" values
-  const prodonStart = incomRow.findIndex((c,i)=>i>0&&c==="Prodon");
-  if(prodonStart<0) throw new Error("No se encontraron columnas Prodon.");
+  // Find ALL columns where Incoming row says "Prodon"
+  const prodonCols = [];
+  for(let c=1;c<incomRow.length;c++){
+    if(incomRow[c]==="Prodon") prodonCols.push(c);
+  }
+  if(prodonCols.length===0) throw new Error("No se encontraron columnas Prodon.");
 
-  // Build weeks array from that column onward
+  // Build weeks array using only Prodon columns
   const weeks=[];
   const csatVals=[], slaVals=[], ttrVals=[], incomVals=[];
 
-  // Use weekRow for week labels and weekDateRow for dates
-  for(let c=prodonStart;c<incomRow.length;c++){
+  for(const c of prodonCols){
     const wLabel = weekRow?weekRow[c]:"";
     const wDate  = weekDateRow?weekDateRow[c]:"";
     if(!wLabel&&!wDate) continue;
