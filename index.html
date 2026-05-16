@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Prodon Support Metrics · CX Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f5f4f2;--surface:#ffffff;--border:#e5e4e0;--border2:#d0cfc9;
+    --text:#1a1a18;--text2:#6b6a65;--text3:#9e9d97;
+    --purple:#7F77DD;--purple-light:#EEEDFE;--purple-dark:#3C3489;
+    --teal:#1D9E75;--teal-light:#E1F5EE;
+    --blue:#378ADD;--blue-light:#E6F1FB;
+    --coral:#D85A30;--coral-light:#FAECE7;
+    --green:#3B6D11;--green-light:#EAF3DE;
+    --red:#A32D2D;--red-light:#FCEBEB;
+    --amber:#BA7517;--amber-light:#FAEEDA;
+    --radius:10px;--radius-sm:6px;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  /* Header */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 1.5rem 0.75rem;position:sticky;top:0;z-index:10}
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem}
+  .header-title{font-size:17px;font-weight:600;color:var(--text)}
+  .header-sub{font-size:12px;color:var(--text2);margin-top:2px}
+  .badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;background:var(--blue-light);color:#185FA5}
+  .filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tab-btn{padding:4px 14px;font-size:12px;border-radius:20px;cursor:pointer;font-weight:500;border:1px solid var(--border2);background:transparent;color:var(--text2);transition:all .15s}
+  .tab-btn.active{border-color:var(--purple);background:var(--purple-light);color:var(--purple-dark)}
+  select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;outline:none}
+  /* Body */
+  .body{padding:1.25rem 1.5rem;max-width:1100px;margin:0 auto}
+  /* KPI grid */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+  @media(max-width:700px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+  .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;border-top-width:3px;position:relative}
+  .kpi-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+  .kpi-label{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+  .kpi-value{font-size:28px;font-weight:600;line-height:1;margin-bottom:2px}
+  .kpi-desc{font-size:11px;color:var(--text3);margin-bottom:8px}
+  .kpi-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px}
+  .badge-ok{background:var(--green-light);color:var(--green)}
+  .badge-ko{background:var(--red-light);color:var(--red)}
+  .kpi-trend{font-size:11px;font-weight:500;margin-top:4px}
+  /* Row 2 */
+  .row2{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px}
+  @media(max-width:700px){.row2{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem}
+  .card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+  .card-sub{font-size:11px;color:var(--text2);margin-bottom:10px}
+  .chart-tabs{display:flex;gap:6px;margin-bottom:8px}
+  .chart-tab{padding:3px 10px;font-size:11px;border-radius:12px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);transition:all .15s}
+  .chart-tab.active{background:#f0eff8;border-color:var(--purple);color:var(--purple-dark);font-weight:500}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:6px}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+  .legend-dot{width:8px;height:8px;border-radius:2px;display:inline-block}
+  /* Gauge grid */
+  .gauge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+  .gauge-item{text-align:center;padding:6px 0}
+  .gauge-lbl{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+  /* Info chips */
+  .info-row{display:flex;gap:8px;margin-top:8px}
+  .info-chip{flex:1;background:var(--bg);border-radius:8px;padding:8px 10px}
+  .info-chip-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+  .info-chip-val{font-size:18px;font-weight:600;color:var(--text)}
+  /* Loading */
+  .loading{display:flex;align-items:center;justify-content:center;height:200px;font-size:14px;color:var(--text2)}
+  .error{background:var(--red-light);color:var(--red);padding:1rem;border-radius:var(--radius);font-size:13px;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">Prodon Support Metrics</div>
+      <div class="header-sub">CX Dashboard · 2025–2026</div>
+    </div>
+    <span class="badge" id="period-badge">Cargando...</span>
+  </div>
+  <div class="filter-row">
+    <button class="tab-btn active" id="btn-mensual" onclick="setView('mensual')">Mensual</button>
+    <button class="tab-btn" id="btn-semanal" onclick="setView('semanal')">Semanal</button>
+    <select id="sel-month" onchange="onFilterChange()"></select>
+    <select id="sel-week" style="display:none" onchange="onFilterChange()"></select>
+  </div>
+</div>
+
+<div class="body">
+  <div id="error-box" class="error" style="display:none"></div>
+  <div id="loading" class="loading">Cargando datos desde Google Sheets...</div>
+  <div id="dashboard" style="display:none">
+    <div class="kpi-grid" id="kpi-grid"></div>
+    <div class="row2">
+      <div class="card">
+        <div class="card-title">Evolución de KPIs</div>
+        <div class="card-sub">Período seleccionado · semanas</div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" onclick="setChartMode('all')">Todos</button>
+          <button class="chart-tab" onclick="setChartMode('csat')">CSAT</button>
+          <button class="chart-tab" onclick="setChartMode('sla')">SLA</button>
+          <button class="chart-tab" onclick="setChartMode('ttr')">TTR</button>
+        </div>
+        <div class="legend" id="main-legend"></div>
+        <svg id="line-chart" viewBox="0 0 600 180" style="width:100%;height:180px"></svg>
+      </div>
+      <div class="card">
+        <div class="card-title">Estado vs. target</div>
+        <div class="card-sub">Promedio del período</div>
+        <div class="gauge-grid" id="gauge-grid"></div>
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Incoming acumulado</div>
+        <div class="info-row" id="incoming-chips"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Incoming tickets — volumen semanal</div>
+      <div class="card-sub">Tickets creados por semana · Prodon</div>
+      <svg id="bar-chart" viewBox="0 0 600 130" style="width:100%;height:130px"></svg>
+    </div>
+  </div>
+</div>
+
+<script>
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSGY7qrNl7BjggOazK0Jm3VbDryIKK6g1xIKym_cPzR8mi5hK_Se8sg2pbLzYs42rE7phc46XmnRwLy/pub?gid=663980449&single=true&output=csv";
+
+let state = {
+  weeks: [], data: {csat:[],sla:[],ttr:[],incoming:[]},
+  viewMode: "mensual", selMonth: null, selWeek: 0,
+  chartMode: "all", loaded: false
+};
+
+function parseNum(s) {
+  if(!s||s.trim()===""||s==="."||s==="-") return null;
+  const c = s.replace(/\./g,"").replace(",",".").replace("%","").replace(/\s/g,"").trim();
+  const n = parseFloat(c);
+  return isNaN(n)?null:n;
+}
+
+function avg(arr) {
+  const v=arr.filter(x=>x!=null);
+  return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;
+}
+function lastVal(arr) {
+  for(let i=arr.length-1;i>=0;i--) if(arr[i]!=null) return arr[i];
+  return null;
+}
+function trendVal(arr) {
+  const v=arr.filter(x=>x!=null);
+  return v.length>=2?v[v.length-1]-v[v.length-2]:0;
+}
+function sum(arr) { return arr.filter(x=>x!=null).reduce((a,b)=>a+b,0); }
+
+function loadData() {
+  Papa.parse(CSV_URL, {
+    download: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      try {
+        parseSheet(results.data);
+        document.getElementById("loading").style.display="none";
+        document.getElementById("dashboard").style.display="block";
+        state.loaded=true;
+        buildSelectors();
+        render();
+      } catch(e) {
+        showError("Error procesando datos: "+e.message);
+      }
+    },
+    error: function(e) {
+      showError("No se pudo cargar el Sheet. Verificá que esté publicado como CSV. Error: "+e.message);
+    }
+  });
+}
+
+function parseSheet(rows) {
+  // Find key rows by their first cell
+  const findRow = (keyword) => rows.find(r=>r[0]&&r[0].includes(keyword));
+  const weekRow = rows.find(r=>r[0]==="Week");
+  const monthRow = rows.find(r=>r[2]&&(r[2].includes("ago")||r[2].includes("agosto")||r[2].includes("Agosto")));
+
+  // Row identifiers
+  const csatRow    = findRow("CSAT 94%") || findRow("[CSAT] CSAT");
+  const slaRow     = findRow("SLA Att");
+  const ttrRow     = findRow("TTR en Target") || findRow(" TTR en Target");
+  const incomRow   = findRow("# Tickets Created");
+  const weekDateRow= rows.find(r=>r[0]==="Week"&&r[2]&&r[2].includes("-"));
+
+  if(!csatRow||!slaRow||!ttrRow||!incomRow) throw new Error("No se encontraron las filas de KPIs.");
+
+  // Find Prodon columns: incoming row has "Prodon" starting from some col
+  // We look at incomRow for "Prodon" values
+  const prodonStart = incomRow.findIndex((c,i)=>i>0&&c==="Prodon");
+  if(prodonStart<0) throw new Error("No se encontraron columnas Prodon.");
+
+  // Build weeks array from that column onward
+  const weeks=[];
+  const csatVals=[], slaVals=[], ttrVals=[], incomVals=[];
+
+  // Use weekRow for week labels and weekDateRow for dates
+  for(let c=prodonStart;c<incomRow.length;c++){
+    const wLabel = weekRow?weekRow[c]:"";
+    const wDate  = weekDateRow?weekDateRow[c]:"";
+    if(!wLabel&&!wDate) continue;
+
+    // Determine month from header rows
+    // Find the month header row (row index 1, the one with "agosto 2025" etc.)
+    const monthHeader = rows[1]; // [AR] Prodon row has month names
+    let monthName = "";
+    // Walk back from c to find last month cell
+    for(let mc=c;mc>=0;mc--){
+      const cell=monthHeader?monthHeader[mc]:"";
+      if(cell&&(cell.includes("2025")||cell.includes("2026"))){monthName=cell;break;}
+    }
+
+    // Build short label
+    const shortDate = wDate.replace(/-$/,"").trim();
+    const monthId = toMonthId(monthName);
+    weeks.push({label:wLabel||("W"+(weeks.length+1)),short:shortDate,month:monthId,monthName});
+
+    csatVals.push(parseNum(csatRow[c]));
+    slaVals.push(parseNum(slaRow[c]));
+    ttrVals.push(parseNum(ttrRow[c]));
+    incomVals.push(parseNum(incomRow[c]));
+  }
+
+  state.weeks=weeks;
+  state.data={csat:csatVals,sla:slaVals,ttr:ttrVals,incoming:incomVals};
+  state.selWeek=weeks.length-1;
+
+  // Set default month to last available
+  const monthsAvail=[...new Set(weeks.map(w=>w.month))];
+  state.selMonth=monthsAvail[monthsAvail.length-1];
+}
+
+function toMonthId(s){
+  if(!s) return "?";
+  s=s.toLowerCase();
+  const map={
+    "agosto":"ago","septiembre":"sep","octubre":"oct","noviembre":"nov",
+    "diciembre":"dic","enero":"ene","febrero":"feb","marzo":"mar",
+    "abril":"abr","mayo":"may","junio":"jun","julio":"jul"
+  };
+  for(const [k,v] of Object.entries(map)){
+    if(s.includes(k)){
+      const yr=s.match(/\d{4}/);
+      return yr?v+"-"+yr[0].slice(2):v;
+    }
+  }
+  return s.slice(0,6);
+}
+
+function buildSelectors(){
+  const months=[...new Set(state.weeks.map(w=>w.month))];
+  const selM=document.getElementById("sel-month");
+  selM.innerHTML=months.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join("");
+  selM.value=state.selMonth;
+
+  const selW=document.getElementById("sel-week");
+  selW.innerHTML=state.weeks.map((w,i)=>`<option value="${i}">${w.label} · ${w.short}</option>`).join("");
+  selW.value=state.selWeek;
+}
+
+function monthLabel(id){
+  const map={ago:"Agosto",sep:"Septiembre",oct:"Octubre",nov:"Noviembre",
+    dic:"Diciembre",ene:"Enero",feb:"Febrero",mar:"Marzo",
+    abr:"Abril",may:"Mayo",jun:"Junio",jul:"Julio"};
+  const [m,y]=id.split("-");
+  return (map[m]||m)+(y?" 20"+y:"");
+}
+
+function setView(v){
+  state.viewMode=v;
+  document.getElementById("btn-mensual").classList.toggle("active",v==="mensual");
+  document.getElementById("btn-semanal").classList.toggle("active",v==="semanal");
+  document.getElementById("sel-month").style.display=v==="mensual"?"":"none";
+  document.getElementById("sel-week").style.display=v==="semanal"?"":"none";
+  render();
+}
+
+function onFilterChange(){
+  state.selMonth=document.getElementById("sel-month").value;
+  state.selWeek=+document.getElementById("sel-week").value;
+  render();
+}
+
+function setChartMode(m){
+  state.chartMode=m;
+  document.querySelectorAll(".chart-tab").forEach((b,i)=>{
+    b.classList.toggle("active",["all","csat","sla","ttr"][i]===m);
+  });
+  renderLineChart();
+  renderLegend();
+}
+
+function getFilteredIdxs(){
+  if(state.viewMode==="mensual")
+    return state.weeks.map((w,i)=>w.month===state.selMonth?i:null).filter(v=>v!==null);
+  return [state.selWeek];
+}
+
+function getFData(){
+  const idxs=getFilteredIdxs();
+  return {
+    labels:idxs.map(i=>state.weeks[i].short),
+    csat:idxs.map(i=>state.data.csat[i]),
+    sla:idxs.map(i=>state.data.sla[i]),
+    ttr:idxs.map(i=>state.data.ttr[i]),
+    incoming:idxs.map(i=>state.data.incoming[i]),
+  };
+}
+
+function render(){
+  if(!state.loaded) return;
+  const fd=getFData();
+  const periodLabel=state.viewMode==="mensual"
+    ?monthLabel(state.selMonth)
+    :state.weeks[state.selWeek].label+" ("+state.weeks[state.selWeek].short+")";
+  document.getElementById("period-badge").textContent=periodLabel;
+
+  renderKPIs(fd);
+  renderLineChart();
+  renderLegend();
+  renderGauges(fd);
+  renderIncomingChips(fd);
+  renderBarChart();
+}
+
+function renderKPIs(fd){
+  const kpis=[
+    {key:"csat",label:"CSAT",desc:"Satisfacción del cliente",target:94,color:"var(--purple)"},
+    {key:"sla",label:"SLA Attainment",desc:"Cumplimiento de SLA",target:90,color:"var(--teal)"},
+    {key:"ttr",label:"TTR <48h",desc:"Tickets resueltos en tiempo",target:90,color:"var(--blue)"},
+    {key:"incoming",label:"Incoming",desc:"Tickets recibidos",target:null,color:"var(--coral)"},
+  ];
+  document.getElementById("kpi-grid").innerHTML=kpis.map(k=>{
+    const v = k.key==="incoming"?sum(fd[k.key]):avg(fd[k.key]);
+    const ok = k.target!=null&&v!=null ? v>=k.target : null;
+    const disp = k.key==="incoming"?(v!=null?v.toLocaleString("es-AR"):"—"):(v!=null?v.toFixed(1)+"%":"—");
+    const valColor = ok===null?k.color:ok?"var(--green)":"var(--red)";
+    const tr = trendVal(state.data[k.key]);
+    const trendColor = tr>0?"var(--green)":tr<0?"var(--red)":"var(--text3)";
+    const spark = sparkSVG(state.data[k.key], k.color);
+    const badgeHtml = ok!==null
+      ?`<span class="kpi-badge ${ok?"badge-ok":"badge-ko"}">${ok?"En target":"Bajo target"}</span>`:"";
+    return `<div class="kpi-card" style="border-top-color:${k.color}">
+      <div class="kpi-top"><span class="kpi-label">${k.label}</span>${badgeHtml}</div>
+      <div class="kpi-value" style="color:${valColor}">${disp}</div>
+      <div class="kpi-desc">${k.desc}</div>
+      <div>${spark}</div>
+      <div class="kpi-trend" style="color:${trendColor}">
+        ${tr>0?"▲":tr<0?"▼":"–"} ${Math.abs(tr).toFixed(1)}${k.key!=="incoming"?"%":""} vs semana ant.
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function sparkSVG(values, color){
+  const valid=values.map((v,i)=>({i,v})).filter(p=>p.v!=null);
+  if(valid.length<2) return "";
+  const mn=Math.min(...valid.map(p=>p.v)), mx=Math.max(...valid.map(p=>p.v)), rng=mx-mn||1;
+  const W=110,H=28;
+  const xs=i=>(i/(values.length-1))*(W-4)+2;
+  const ys=v=>H-2-((v-mn)/rng)*(H-4);
+  const pts=valid.map(p=>`${xs(p.i).toFixed(1)},${ys(p.v).toFixed(1)}`).join(" ");
+  const last=valid[valid.length-1];
+  return `<svg width="${W}" height="${H}" style="display:block">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" opacity="0.7"/>
+    <circle cx="${xs(last.i).toFixed(1)}" cy="${ys(last.v).toFixed(1)}" r="2.5" fill="${color}"/>
+  </svg>`;
+}
+
+function renderLegend(){
+  const fd=getFData();
+  const m=state.chartMode;
+  const items=m==="all"
+    ?[{c:"var(--purple)",l:"CSAT"},{c:"var(--teal)",l:"SLA"},{c:"var(--blue)",l:"TTR"}]
+    :[{c:m==="csat"?"var(--purple)":m==="sla"?"var(--teal)":"var(--blue)",l:m.toUpperCase()}];
+  items.push({c:"#aaa",l:"Target 90%",dashed:true});
+  document.getElementById("main-legend").innerHTML=items.map(x=>
+    `<span class="legend-item">
+      <span class="legend-dot" style="background:${x.dashed?"transparent":"x.c"};${x.dashed?`border:1px dashed ${x.c};background:transparent`:`background:${x.c}`}"></span>
+      ${x.l}
+    </span>`
+  ).join("");
+}
+
+function renderLineChart(){
+  const fd=getFData();
+  const m=state.chartMode;
+  const datasets=m==="all"
+    ?[{values:fd.csat,color:"#7F77DD"},{values:fd.sla,color:"#1D9E75"},{values:fd.ttr,color:"#378ADD"}]
+    :m==="csat"?[{values:fd.csat,color:"#7F77DD"}]
+    :m==="sla"?[{values:fd.sla,color:"#1D9E75"}]
+    :[{values:fd.ttr,color:"#378ADD"}];
+
+  const allV=datasets.flatMap(d=>d.values.filter(x=>x!=null));
+  if(!allV.length){document.getElementById("line-chart").innerHTML="";return;}
+  const mn=Math.floor(Math.min(...allV,90)*0.95);
+  const mx=Math.ceil(Math.max(...allV,m==="csat"?94:90)*1.02);
+  const W=600,H=180,pl=34,pr=8,pt=8,pb=26;
+  const iW=W-pl-pr,iH=H-pt-pb;
+  const labels=fd.labels;
+  const xs=i=>(i/(labels.length-1||1))*iW;
+  const ys=v=>iH-((v-mn)/(mx-mn))*iH;
+
+  let svg="";
+  // Grid
+  for(let i=0;i<5;i++){
+    const v=mn+(mx-mn)*i/4;
+    svg+=`<line x1="${pl}" y1="${pt+ys(v)}" x2="${pl+iW}" y2="${pt+ys(v)}" stroke="#e5e4e0" stroke-width="0.5"/>
+    <text x="${pl-4}" y="${pt+ys(v)+4}" text-anchor="end" font-size="9" fill="#9e9d97">${v.toFixed(0)}%</text>`;
+  }
+  // X labels
+  labels.forEach((l,i)=>{
+    if(i%(Math.ceil(labels.length/7))!==0) return;
+    svg+=`<text x="${pl+xs(i)}" y="${pt+iH+16}" text-anchor="middle" font-size="9" fill="#9e9d97">${l}</text>`;
+  });
+  // Target line
+  const tgts=m==="csat"?[94,90]:[90];
+  tgts.forEach(t=>{
+    svg+=`<line x1="${pl}" y1="${pt+ys(t)}" x2="${pl+iW}" y2="${pt+ys(t)}" stroke="#aaa" stroke-width="1" stroke-dasharray="5,3" opacity="0.6"/>`;
+  });
+  // Datasets
+  datasets.forEach(ds=>{
+    const valid=ds.values.map((v,i)=>({i,v})).filter(p=>p.v!=null);
+    if(!valid.length) return;
+    const areaD=`M${valid.map(p=>`${pl+xs(p.i)},${pt+ys(p.v)}`).join(" L")} L${pl+xs(valid[valid.length-1].i)},${pt+iH} L${pl+xs(valid[0].i)},${pt+iH} Z`;
+    const lineD=valid.map((p,i)=>`${i===0?"M":"L"}${pl+xs(p.i)},${pt+ys(p.v)}`).join(" ");
+    svg+=`<path d="${areaD}" fill="${ds.color}" opacity="0.06"/>
+    <path d="${lineD}" fill="none" stroke="${ds.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    valid.forEach((p,pi)=>{
+      svg+=`<circle cx="${pl+xs(p.i)}" cy="${pt+ys(p.v)}" r="${pi===valid.length-1?3:1.5}" fill="${ds.color}"/>`;
+    });
+  });
+  document.getElementById("line-chart").innerHTML=svg;
+}
+
+function renderGauges(fd){
+  const kpis=[
+    {key:"csat",label:"CSAT",target:94},{key:"sla",label:"SLA",target:90},{key:"ttr",label:"TTR",target:90}
+  ];
+  document.getElementById("gauge-grid").innerHTML=kpis.map(k=>{
+    const v=avg(fd[k.key]);
+    return `<div class="gauge-item">
+      <div class="gauge-lbl">${k.label}</div>
+      ${gaugeSVG(v,k.target)}
+    </div>`;
+  }).join("");
+}
+
+function gaugeSVG(value, target){
+  const size=84, r=32, cx=size/2, cy=size/2+4;
+  if(value==null) return `<svg width="${size}" height="${size/2+18}"><text x="${cx}" y="${cy}" text-anchor="middle" font-size="13" fill="#9e9d97">—</text></svg>`;
+  const pct=Math.min(value/100,1);
+  const tpct=target/100;
+  const arc=(p,r)=>{
+    const a=Math.PI*(1-p);
+    return `${cx+r*Math.cos(Math.PI)},${cy} A${r},${r} 0 0,1 ${(cx+r*Math.cos(a)).toFixed(2)},${(cy-r*Math.sin(a)).toFixed(2)}`;
+  };
+  const ok=value>=target;
+  const fill=ok?"#1D9E75":value>=target-5?"#BA7517":"#A32D2D";
+  const tx=cx+(r-10)*Math.cos(Math.PI*(1-tpct));
+  const ty=cy-(r-10)*Math.sin(Math.PI*(1-tpct));
+  return `<svg width="${size}" height="${size/2+18}" style="display:block;margin:0 auto">
+    <path d="M${arc(1,r)}" fill="none" stroke="#e5e4e0" stroke-width="6" stroke-linecap="round"/>
+    <path d="M${arc(pct,r)}" fill="none" stroke="${fill}" stroke-width="6" stroke-linecap="round"/>
+    <line x1="${cx}" y1="${cy}" x2="${tx.toFixed(2)}" y2="${ty.toFixed(2)}" stroke="#aaa" stroke-width="1.5" stroke-dasharray="2,2"/>
+    <text x="${cx}" y="${cy+2}" text-anchor="middle" font-size="13" font-weight="600" fill="${fill}">${value.toFixed(1)}%</text>
+    <text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="9" fill="#9e9d97">target ${target}%</text>
+  </svg>`;
+}
+
+function renderIncomingChips(fd){
+  const periodSum=sum(fd.incoming);
+  const totalSum=sum(state.data.incoming);
+  document.getElementById("incoming-chips").innerHTML=`
+    <div class="info-chip" style="border-left:3px solid var(--coral)">
+      <div class="info-chip-lbl">Período</div>
+      <div class="info-chip-val">${periodSum.toLocaleString("es-AR")}</div>
+    </div>
+    <div class="info-chip" style="border-left:3px solid #888780">
+      <div class="info-chip-lbl">Total 2025-26</div>
+      <div class="info-chip-val">${totalSum.toLocaleString("es-AR")}</div>
+    </div>`;
+}
+
+function renderBarChart(){
+  const values=state.data.incoming;
+  const labels=state.weeks.map(w=>w.label);
+  const valid=values.filter(x=>x!=null);
+  if(!valid.length) return;
+  const mx=Math.max(...valid)*1.1;
+  const W=600,H=130,pl=44,pr=8,pt=8,pb=26;
+  const iW=W-pl-pr,iH=H-pt-pb;
+  const bW=Math.max(4,(iW/labels.length)-3);
+  let svg="";
+  [0,0.5,1].forEach(t=>{
+    const v=mx*t, y=iH*(1-t);
+    svg+=`<line x1="${pl}" y1="${pt+y}" x2="${pl+iW}" y2="${pt+y}" stroke="#e5e4e0" stroke-width="0.5"/>
+    <text x="${pl-4}" y="${pt+y+4}" text-anchor="end" font-size="9" fill="#9e9d97">${Math.round(v).toLocaleString("es-AR")}</text>`;
+  });
+  labels.forEach((l,i)=>{
+    const v=values[i];
+    const x=pl+(i/labels.length)*iW+(iW/labels.length-bW)/2;
+    const bH=v!=null?(v/mx)*iH:0;
+    if(v!=null) svg+=`<rect x="${x.toFixed(1)}" y="${(pt+iH-bH).toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="#D85A30" rx="2" opacity="0.85"/>`;
+    if(i%(Math.ceil(labels.length/7))===0)
+      svg+=`<text x="${(x+bW/2).toFixed(1)}" y="${pt+iH+16}" text-anchor="middle" font-size="9" fill="#9e9d97">${l}</text>`;
+  });
+  document.getElementById("bar-chart").innerHTML=svg;
+}
+
+function showError(msg){
+  document.getElementById("loading").style.display="none";
+  const eb=document.getElementById("error-box");
+  eb.style.display="block";
+  eb.textContent=msg;
+}
+
+loadData();
+</script>
+</body>
+</html>
