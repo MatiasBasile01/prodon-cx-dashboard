@@ -16,18 +16,19 @@
   --green:#3B6D11;--green-l:#EAF3DE;
   --red:#A32D2D;--red-l:#FCEBEB;
   --amber:#BA7517;--amber-l:#FAEEDA;
-  --r:10px;--rs:6px;
+  --r:10px;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 .header{background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 1.5rem .75rem;position:sticky;top:0;z-index:10}
 .h-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
 .h-title{font-size:17px;font-weight:600}
 .h-sub{font-size:12px;color:var(--text2);margin-top:2px}
-.badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;background:var(--blue-l);color:#185FA5}
+.badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;background:var(--blue-l);color:#185FA5;white-space:nowrap}
 .frow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.tbtn{padding:4px 14px;font-size:12px;border-radius:20px;cursor:pointer;font-weight:500;border:1px solid var(--border2);background:transparent;color:var(--text2);transition:all .15s}
+.tbtn{padding:4px 14px;font-size:12px;border-radius:20px;cursor:pointer;font-weight:500;border:1px solid var(--border2);background:transparent;color:var(--text2)}
 .tbtn.on{border-color:var(--purple);background:var(--purple-l);color:var(--purple-d)}
 select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;outline:none}
+.sep{color:var(--text3);font-size:12px}
 .body{padding:1.25rem 1.5rem;max-width:1100px;margin:0 auto}
 .kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
 @media(max-width:700px){.kgrid{grid-template-columns:repeat(2,1fr)}}
@@ -45,7 +46,7 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem}
 .ctitle{font-size:13px;font-weight:600;margin-bottom:2px}
 .csub{font-size:11px;color:var(--text2);margin-bottom:10px}
-.chtabs{display:flex;gap:6px;margin-bottom:8px}
+.chtabs{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
 .chtab{padding:3px 10px;font-size:11px;border-radius:12px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2)}
 .chtab.on{background:#f0eff8;border-color:var(--purple);color:var(--purple-d);font-weight:500}
 .legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:6px}
@@ -60,6 +61,13 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
 .icv{font-size:18px;font-weight:600;color:var(--text)}
 .err{background:var(--red-l);color:var(--red);padding:1rem;border-radius:var(--r);font-size:13px;margin-bottom:12px;display:none}
 .loading{display:flex;align-items:center;justify-content:center;height:200px;font-size:14px;color:var(--text2)}
+/* balance bar */
+.bal-wrap{margin-top:12px}
+.bal-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px}
+.bal-track{height:8px;border-radius:4px;background:var(--border);overflow:hidden;display:flex}
+.bal-fill-c{height:100%;background:#D85A30;border-radius:4px 0 0 4px;transition:width .3s}
+.bal-fill-cl{height:100%;background:#1D9E75;border-radius:0 4px 4px 0;transition:width .3s}
+.bal-nums{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px}
 </style>
 </head>
 <body>
@@ -71,8 +79,18 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
   <div class="frow">
     <button class="tbtn on" id="bm" onclick="setView('mensual')">Mensual</button>
     <button class="tbtn" id="bs" onclick="setView('semanal')">Semanal</button>
-    <select id="sm" onchange="onFC()"></select>
-    <select id="sw" style="display:none" onchange="onFC()"></select>
+    <button class="tbtn" id="br" onclick="setView('rango')">Rango</button>
+    <span id="ctrl-mensual">
+      <select id="sm" onchange="onFC()"></select>
+    </span>
+    <span id="ctrl-semanal" style="display:none">
+      <select id="sw" onchange="onFC()"></select>
+    </span>
+    <span id="ctrl-rango" style="display:none;align-items:center;gap:6px">
+      <select id="rFrom" onchange="onFC()"></select>
+      <span class="sep">→</span>
+      <select id="rTo" onchange="onFC()"></select>
+    </span>
   </div>
 </div>
 <div class="body">
@@ -83,7 +101,7 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
     <div class="row2">
       <div class="card">
         <div class="ctitle">Evolución de KPIs</div>
-        <div class="csub">Período seleccionado · semanas</div>
+        <div class="csub" id="lc-sub">Período seleccionado</div>
         <div class="chtabs">
           <button class="chtab on" onclick="setCM('all')">Todos</button>
           <button class="chtab" onclick="setCM('csat')">CSAT</button>
@@ -97,21 +115,35 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
         <div class="ctitle">Estado vs. target</div>
         <div class="csub">Promedio del período</div>
         <div class="ggrid" id="gg"></div>
-        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Incoming acumulado</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Incoming acumulado</div>
         <div class="irow" id="ic"></div>
+      </div>
+    </div>
+    <!-- Creados vs Cerrados -->
+    <div class="card" style="margin-bottom:10px">
+      <div class="ctitle">Tickets creados vs. cerrados</div>
+      <div class="csub">Evolución semanal · Prodon</div>
+      <div class="legend" style="margin-bottom:8px">
+        <span class="li"><span class="ld" style="background:#D85A30"></span>Creados</span>
+        <span class="li"><span class="ld" style="background:#1D9E75"></span>Cerrados</span>
+      </div>
+      <svg id="dc" viewBox="0 0 600 150" style="width:100%;height:150px"></svg>
+      <div class="bal-wrap">
+        <div class="bal-label"><span>Creados</span><span id="bal-pct"></span><span>Cerrados</span></div>
+        <div class="bal-track"><div class="bal-fill-c" id="bf-c"></div><div class="bal-fill-cl" id="bf-cl"></div></div>
+        <div class="bal-nums"><span id="bal-c">—</span><span id="bal-cl">—</span></div>
       </div>
     </div>
     <div class="card">
       <div class="ctitle">Incoming tickets — volumen semanal</div>
-      <div class="csub">Tickets creados por semana · Prodon</div>
-      <svg id="bc" viewBox="0 0 600 130" style="width:100%;height:130px"></svg>
+      <div class="csub">Todos los tickets creados · Prodon</div>
+      <svg id="bc" viewBox="0 0 600 120" style="width:100%;height:120px"></svg>
     </div>
   </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-// ── DATA (hardcoded fallback — also fetched live below) ──────────────────────
-const STATIC = {
+const STATIC={
   weeks:[
     {l:"W32",s:"4-ago",m:"ago-25"},{l:"W33",s:"11-ago",m:"ago-25"},
     {l:"W34",s:"18-ago",m:"ago-25"},{l:"W35",s:"25-ago",m:"ago-25"},
@@ -137,41 +169,31 @@ const STATIC = {
   sla:[85,86,80,81,82,86,87,85,83,89,85,86,85,81,82,84,87,87,88,90,87,81,87,87,72,67,83,90,88,92,88,89,86,89,88,89,88,88,95,90,92,91,93,88,81,82,92,85,86],
   ttr:[86,90,84,85,86,88,90,91,91,94,90,93,93,88,90,91,91,93,94,95,93,93,95,93,83,83,81,92,95,94,95,94,94,95,94,95,95,96,98,96,96,96,95,96,93,93,94,94,96],
   incoming:[654,638,895,693,640,595,666,572,566,504,610,751,768,660,630,524,599,589,501,450,308,312,485,559,482,551,554,618,470,628,702,626,670,630,553,681,723,663,459,731,null,null,null,null,null,null,null,null,null],
+  closed:[587,612,531,356,567,513,663,588,569,444,602,560,530,564,714,724,705,557,504,563,725,504,476,547,522,503,544,591,472,626,674,629,639,593,553,622,692,653,463,659,null,null,null,null,null,null,null,null,null],
 };
 
-let S = {
-  weeks:[], data:{csat:[],sla:[],ttr:[],incoming:[]},
-  view:"mensual", month:null, week:0, cm:"all"
-};
+let S={weeks:[],data:{csat:[],sla:[],ttr:[],incoming:[],closed:[]},
+  view:"mensual",month:null,week:0,rFrom:0,rTo:0,cm:"all"};
 
-// ── UTILS ────────────────────────────────────────────────────────────────────
-const avg = a=>{const v=a.filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null};
-const sum = a=>a.filter(x=>x!=null).reduce((a,b)=>a+b,0);
-const lastV = a=>{for(let i=a.length-1;i>=0;i--)if(a[i]!=null)return a[i];return null};
-const trnd = a=>{const v=a.filter(x=>x!=null);return v.length>=2?v[v.length-1]-v[v.length-2]:0};
-const pnum = s=>{
-  if(!s||[".","–","-","#VALUE!","#DIV/0!","#REF!"].includes(s.trim())) return null;
+const avg=a=>{const v=a.filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null};
+const sum=a=>a.filter(x=>x!=null).reduce((a,b)=>a+b,0);
+const trnd=a=>{const v=a.filter(x=>x!=null);return v.length>=2?v[v.length-1]-v[v.length-2]:0};
+const pnum=s=>{
+  if(!s||[".","–","-","#VALUE!","#DIV/0!","#REF!"].includes(s.trim()))return null;
   const n=parseFloat(s.replace(/\./g,"").replace(",",".").replace("%","").trim());
   return isNaN(n)?null:n;
 };
-const mLabel = id=>{
+const mLabel=id=>{
   const m={ago:"Agosto",sep:"Septiembre",oct:"Octubre",nov:"Noviembre",dic:"Diciembre",
     ene:"Enero",feb:"Febrero",mar:"Marzo",abr:"Abril",may:"Mayo",jun:"Junio",jul:"Julio"};
   const[p,y]=id.split("-");return(m[p]||p)+(y?" 20"+y:"");
 };
 
-// ── LOAD ─────────────────────────────────────────────────────────────────────
 function loadData(){
   Papa.parse("/api/csv",{
-    download:true, skipEmptyLines:true,
-    complete(res){
-      try{ parseCSV(res.data); }
-      catch(e){
-        console.warn("CSV parse failed, using static data:",e.message);
-        useStatic();
-      }
-    },
-    error(e){ console.warn("CSV fetch failed, using static:",e); useStatic(); }
+    download:true,skipEmptyLines:true,
+    complete(res){try{parseCSV(res.data);}catch(e){console.warn("CSV fail:",e.message);useStatic();}},
+    error(){useStatic();}
   });
 }
 
@@ -179,58 +201,46 @@ function useStatic(){
   const W=STATIC.weeks.length;
   const pad=a=>{const o=[...a];while(o.length<W)o.push(null);return o.slice(0,W);};
   S.weeks=STATIC.weeks.map(w=>({label:w.l,short:w.s,month:w.m}));
-  S.data={csat:pad(STATIC.csat),sla:pad(STATIC.sla),ttr:pad(STATIC.ttr),incoming:pad(STATIC.incoming)};
-  S.week=S.weeks.length-1;
-  const ms=[...new Set(S.weeks.map(w=>w.month))];
-  S.month=ms[ms.length-1];
+  S.data={csat:pad(STATIC.csat),sla:pad(STATIC.sla),ttr:pad(STATIC.ttr),
+    incoming:pad(STATIC.incoming),closed:pad(STATIC.closed)};
+  S.week=S.weeks.length-1;S.rFrom=0;S.rTo=S.weeks.length-1;
+  const ms=[...new Set(S.weeks.map(w=>w.month))];S.month=ms[ms.length-1];
   boot();
 }
 
 function parseCSV(rows){
-  // Find rows by keyword
   const findR=kw=>rows.find(r=>r[0]&&r[0].toLowerCase().includes(kw.toLowerCase()));
   const incomRow=findR("Incoming");
-  if(!incomRow) throw new Error("Sin fila Incoming");
-
-  // Prodon columns
+  if(!incomRow)throw new Error("Sin fila Incoming");
   const pCols=incomRow.map((v,i)=>v==="Prodon"?i:null).filter(v=>v!==null);
-  if(!pCols.length) throw new Error("Sin columnas Prodon");
-
-  const csatRow = findR("CSAT 94%")||findR("csat consolidado");
-  const slaRow  = findR("SLA Att");
-  const ttrRow  = findR("TTR en Target");
-  const tickRow = findR("# Tickets Created");
-  if(!csatRow||!slaRow||!ttrRow||!tickRow) throw new Error("Faltan filas KPI");
-
-  // Date row: row[0]==="Week" with actual dates in prodon columns
+  if(!pCols.length)throw new Error("Sin columnas Prodon");
+  const csatRow=findR("CSAT 94%")||findR("csat consolidado");
+  const slaRow=findR("SLA Att");
+  const ttrRow=findR("TTR en Target");
+  const tickRow=findR("# Tickets Created");
+  const closedRow=findR("# Tickets Closed");
+  if(!csatRow||!slaRow||!ttrRow||!tickRow)throw new Error("Faltan filas KPI");
   const dateRow=rows.find(r=>r[0]==="Week"&&pCols.some(c=>r[c]&&r[c].trim()!==""));
-  // Month row
   const mRow=rows.find(r=>r[0]==="[AR] Prodon");
-
-  const weeks=[],csat=[],sla=[],ttr=[],inc=[];
+  const weeks=[],csat=[],sla=[],ttr=[],inc=[],cls=[];
   for(const c of pCols){
     const dt=(dateRow?dateRow[c]||"":"").trim().replace(/-$/,"");
-    // Month
     let mName="";
     if(mRow){for(let i=c;i>=0;i--){const v=(mRow[i]||"").trim();if(v&&(v.includes("2025")||v.includes("2026"))){mName=v;break;}}}
-    const mId=toMonthId(mName);
-    weeks.push({label:"W"+(weeks.length+1),short:dt||("col"+c),month:mId});
-    csat.push(pnum(csatRow[c]));
-    sla.push(pnum(slaRow[c]));
-    ttr.push(pnum(ttrRow[c]));
+    weeks.push({label:"W"+(weeks.length+1),short:dt||("col"+c),month:toMonthId(mName)});
+    csat.push(pnum(csatRow[c]));sla.push(pnum(slaRow[c]));ttr.push(pnum(ttrRow[c]));
     inc.push(pnum(tickRow[c]));
+    cls.push(closedRow?pnum(closedRow[c]):null);
   }
-  if(!weeks.length) throw new Error("Sin semanas");
-  S.weeks=weeks; S.data={csat,sla,ttr,incoming:inc};
-  S.week=weeks.length-1;
-  const ms=[...new Set(weeks.map(w=>w.month))];
-  S.month=ms[ms.length-1];
+  if(!weeks.length)throw new Error("Sin semanas");
+  S.weeks=weeks;S.data={csat,sla,ttr,incoming:inc,closed:cls};
+  S.week=weeks.length-1;S.rFrom=0;S.rTo=weeks.length-1;
+  const ms=[...new Set(weeks.map(w=>w.month))];S.month=ms[ms.length-1];
   boot();
 }
 
 function toMonthId(s){
-  if(!s) return "?";
-  s=s.toLowerCase();
+  if(!s)return"?";s=s.toLowerCase();
   const m={agosto:"ago",septiembre:"sep",octubre:"oct",noviembre:"nov",diciembre:"dic",
     enero:"ene",febrero:"feb",marzo:"mar",abril:"abr",mayo:"may",junio:"jun",julio:"jul"};
   for(const[k,v]of Object.entries(m)){if(s.includes(k)){const y=s.match(/\d{4}/);return y?v+"-"+y[0].slice(2):v;}}
@@ -240,7 +250,7 @@ function toMonthId(s){
 function boot(){
   document.getElementById("loading").style.display="none";
   document.getElementById("dash").style.display="block";
-  buildSelectors(); render();
+  buildSelectors();render();
 }
 
 function buildSelectors(){
@@ -251,46 +261,64 @@ function buildSelectors(){
   const sw=document.getElementById("sw");
   sw.innerHTML=S.weeks.map((w,i)=>`<option value="${i}">${w.label} · ${w.short}</option>`).join("");
   sw.value=S.week;
+  // Rango selectors
+  const rf=document.getElementById("rFrom"),rt=document.getElementById("rTo");
+  const wopts=S.weeks.map((w,i)=>`<option value="${i}">${w.label} · ${w.short}</option>`).join("");
+  rf.innerHTML=wopts;rt.innerHTML=wopts;
+  rf.value=S.rFrom;rt.value=S.rTo;
 }
 
-// ── CONTROLS ─────────────────────────────────────────────────────────────────
 function setView(v){
   S.view=v;
-  document.getElementById("bm").classList.toggle("on",v==="mensual");
-  document.getElementById("bs").classList.toggle("on",v==="semanal");
-  document.getElementById("sm").style.display=v==="mensual"?"":"none";
-  document.getElementById("sw").style.display=v==="semanal"?"":"none";
+  ["mensual","semanal","rango"].forEach(x=>{
+    document.getElementById("b"+x[0]).classList.toggle("on",v===x);
+    document.getElementById("ctrl-"+x).style.display=v===x?(x==="rango"?"flex":""):"none";
+  });
   render();
 }
+
 function onFC(){
   S.month=document.getElementById("sm").value;
   S.week=+document.getElementById("sw").value;
+  S.rFrom=+document.getElementById("rFrom").value;
+  S.rTo=+document.getElementById("rTo").value;
+  if(S.rTo<S.rFrom)S.rTo=S.rFrom;
   render();
 }
+
 function setCM(m){
   S.cm=m;
   document.querySelectorAll(".chtab").forEach((b,i)=>b.classList.toggle("on",["all","csat","sla","ttr"][i]===m));
-  renderLC(); renderLeg();
+  renderLC();renderLeg();
 }
 
-// ── FILTERED DATA ─────────────────────────────────────────────────────────────
 function fidxs(){
-  if(S.view==="mensual") return S.weeks.map((w,i)=>w.month===S.month?i:null).filter(v=>v!==null);
-  return [S.week];
+  if(S.view==="mensual")return S.weeks.map((w,i)=>w.month===S.month?i:null).filter(v=>v!==null);
+  if(S.view==="semanal")return[S.week];
+  const from=Math.min(S.rFrom,S.rTo),to=Math.max(S.rFrom,S.rTo);
+  return Array.from({length:to-from+1},(_,i)=>from+i);
 }
+
 function fd(){
   const ix=fidxs();
   return{labels:ix.map(i=>S.weeks[i].short),
     csat:ix.map(i=>S.data.csat[i]),sla:ix.map(i=>S.data.sla[i]),
-    ttr:ix.map(i=>S.data.ttr[i]),incoming:ix.map(i=>S.data.incoming[i])};
+    ttr:ix.map(i=>S.data.ttr[i]),incoming:ix.map(i=>S.data.incoming[i]),
+    closed:ix.map(i=>S.data.closed[i])};
 }
 
-// ── RENDER ────────────────────────────────────────────────────────────────────
 function render(){
   const f=fd();
-  const pl=S.view==="mensual"?mLabel(S.month):S.weeks[S.week].label+" ("+S.weeks[S.week].short+")";
+  let pl="";
+  if(S.view==="mensual") pl=mLabel(S.month);
+  else if(S.view==="semanal") pl=S.weeks[S.week].label+" ("+S.weeks[S.week].short+")";
+  else{
+    const from=Math.min(S.rFrom,S.rTo),to=Math.max(S.rFrom,S.rTo);
+    pl=S.weeks[from].short+" → "+S.weeks[to].short;
+  }
   document.getElementById("pbadge").textContent=pl;
-  renderKPIs(f); renderLC(); renderLeg(); renderGauges(f); renderIC(f); renderBC();
+  document.getElementById("lc-sub").textContent=pl+" · "+fidxs().length+" semana"+(fidxs().length!==1?"s":"");
+  renderKPIs(f);renderLC();renderLeg();renderGauges(f);renderIC(f);renderDC(f);renderBC();
 }
 
 function renderKPIs(f){
@@ -298,7 +326,7 @@ function renderKPIs(f){
     {k:"csat",l:"CSAT",d:"Satisfacción del cliente",t:94,c:"var(--purple)"},
     {k:"sla",l:"SLA Attainment",d:"Cumplimiento de SLA",t:90,c:"var(--teal)"},
     {k:"ttr",l:"TTR <48h",d:"Tickets resueltos en tiempo",t:90,c:"var(--blue)"},
-    {k:"incoming",l:"Incoming",d:"Tickets recibidos",t:null,c:"var(--coral)"},
+    {k:"incoming",l:"Incoming",d:"Creados en el período",t:null,c:"var(--coral)"},
   ];
   document.getElementById("kg").innerHTML=ks.map(k=>{
     const v=k.k==="incoming"?sum(f[k.k]):avg(f[k.k]);
@@ -309,7 +337,7 @@ function renderKPIs(f){
     const tc=tr>0?"var(--green)":tr<0?"var(--red)":"var(--text3)";
     const sp=sparkSVG(S.data[k.k],k.c);
     const bh=ok!==null?`<span class="kbadge ${ok?"ok":"ko"}">${ok?"En target":"Bajo target"}</span>`:"";
-    return `<div class="kcard" style="border-top-color:${k.c}">
+    return`<div class="kcard" style="border-top-color:${k.c}">
       <div class="ktop"><span class="klbl">${k.l}</span>${bh}</div>
       <div class="kval" style="color:${vc}">${disp}</div>
       <div class="kdesc">${k.d}</div>
@@ -326,7 +354,7 @@ function sparkSVG(vals,color){
   const W=110,H=28,xs=i=>(i/(vals.length-1))*(W-4)+2,ys=x=>H-2-((x-mn)/rng)*(H-4);
   const pts=v.map(p=>`${xs(p.i).toFixed(1)},${ys(p.x).toFixed(1)}`).join(" ");
   const last=v[v.length-1];
-  return `<svg width="${W}" height="${H}" style="display:block">
+  return`<svg width="${W}" height="${H}" style="display:block">
     <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" opacity="0.7"/>
     <circle cx="${xs(last.i).toFixed(1)}" cy="${ys(last.x).toFixed(1)}" r="2.5" fill="${color}"/>
   </svg>`;
@@ -393,15 +421,52 @@ function gaugeSVG(val,tgt){
 
 function renderIC(f){
   const ps=sum(f.incoming),ts=sum(S.data.incoming);
+  const pc=sum(f.closed),tc=sum(S.data.closed);
+  const diff=ps-pc;
+  const diffColor=diff<=0?"var(--green)":"var(--red)";
   document.getElementById("ic").innerHTML=`
-    <div class="ichip" style="border-left:3px solid var(--coral)"><div class="icl">Período</div><div class="icv">${Math.round(ps).toLocaleString("es-AR")}</div></div>
-    <div class="ichip" style="border-left:3px solid #888780"><div class="icl">Total 2025-26</div><div class="icv">${Math.round(ts).toLocaleString("es-AR")}</div></div>`;
+    <div class="ichip" style="border-left:3px solid var(--coral)"><div class="icl">Creados período</div><div class="icv">${Math.round(ps).toLocaleString("es-AR")}</div></div>
+    <div class="ichip" style="border-left:3px solid var(--teal)"><div class="icl">Cerrados período</div><div class="icv">${Math.round(pc).toLocaleString("es-AR")}</div></div>
+    <div class="ichip" style="border-left:3px solid ${diffColor}"><div class="icl">Balance</div><div class="icv" style="color:${diffColor}">${diff>0?"+":""}${Math.round(diff).toLocaleString("es-AR")}</div></div>`;
+}
+
+function renderDC(f){
+  const inc=f.incoming,cls=f.closed,lb=f.labels;
+  const allV=[...inc,...cls].filter(x=>x!=null);
+  if(!allV.length){document.getElementById("dc").innerHTML="";return;}
+  const mx=Math.max(...allV)*1.1;
+  const W=600,H=150,pl=44,pr=8,pt=8,pb=26,iW=W-pl-pr,iH=H-pt-pb;
+  const bW=Math.max(3,(iW/lb.length)-4),gap=1;
+  let svg="";
+  [0,.5,1].forEach(t=>{
+    const v=mx*t,y=iH*(1-t);
+    svg+=`<line x1="${pl}" y1="${pt+y}" x2="${pl+iW}" y2="${pt+y}" stroke="#e5e4e0" stroke-width="0.5"/>
+    <text x="${pl-4}" y="${pt+y+4}" text-anchor="end" font-size="9" fill="#9e9d97">${Math.round(v).toLocaleString("es-AR")}</text>`;
+  });
+  lb.forEach((l,i)=>{
+    const slotX=pl+(i/lb.length)*iW+(iW/lb.length-(bW*2+gap))/2;
+    const vi=inc[i],vc=cls[i];
+    if(vi!=null){const h=(vi/mx)*iH;svg+=`<rect x="${slotX.toFixed(1)}" y="${(pt+iH-h).toFixed(1)}" width="${bW}" height="${h.toFixed(1)}" fill="#D85A30" rx="1.5" opacity="0.85"/>`;}
+    if(vc!=null){const h=(vc/mx)*iH;svg+=`<rect x="${(slotX+bW+gap).toFixed(1)}" y="${(pt+iH-h).toFixed(1)}" width="${bW}" height="${h.toFixed(1)}" fill="#1D9E75" rx="1.5" opacity="0.85"/>`;}
+    if(i%(Math.ceil(lb.length/7))===0)svg+=`<text x="${(slotX+bW).toFixed(1)}" y="${pt+iH+16}" text-anchor="middle" font-size="9" fill="#9e9d97">${l}</text>`;
+  });
+  document.getElementById("dc").innerHTML=svg;
+  // Balance bar
+  const tc=sum(f.incoming),tcl=sum(f.closed),tot=tc+tcl;
+  if(tot>0){
+    const cp=(tc/tot*100).toFixed(0),clp=(tcl/tot*100).toFixed(0);
+    document.getElementById("bf-c").style.width=cp+"%";
+    document.getElementById("bf-cl").style.width=clp+"%";
+    document.getElementById("bal-pct").textContent=`${tc>tcl?"+":""}${(tc-tcl).toLocaleString("es-AR")} neto`;
+    document.getElementById("bal-c").textContent=tc.toLocaleString("es-AR");
+    document.getElementById("bal-cl").textContent=tcl.toLocaleString("es-AR");
+  }
 }
 
 function renderBC(){
   const vals=S.data.incoming,labs=S.weeks.map(w=>w.label);
   const vld=vals.filter(x=>x!=null);if(!vld.length)return;
-  const mx=Math.max(...vld)*1.1,W=600,H=130,pl=44,pr=8,pt=8,pb=26,iW=W-pl-pr,iH=H-pt-pb;
+  const mx=Math.max(...vld)*1.1,W=600,H=120,pl=44,pr=8,pt=8,pb=26,iW=W-pl-pr,iH=H-pt-pb;
   const bW=Math.max(4,(iW/labs.length)-3);
   let svg="";
   [0,.5,1].forEach(t=>{const v=mx*t,y=iH*(1-t);svg+=`<line x1="${pl}" y1="${pt+y}" x2="${pl+iW}" y2="${pt+y}" stroke="#e5e4e0" stroke-width="0.5"/><text x="${pl-4}" y="${pt+y+4}" text-anchor="end" font-size="9" fill="#9e9d97">${Math.round(v).toLocaleString("es-AR")}</text>`;});
@@ -413,8 +478,6 @@ function renderBC(){
   document.getElementById("bc").innerHTML=svg;
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-// Try live CSV first; fall back to static data if it fails
 loadData();
 </script>
 </body>
