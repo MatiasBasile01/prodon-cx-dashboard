@@ -123,7 +123,8 @@
 </div>
 
 <script>
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSGY7qrNl7BjggOazK0Jm3VbDryIKK6g1xIKym_cPzR8mi5hK_Se8sg2pbLzYs42rE7phc46XmnRwLy/pub?gid=663980449&single=true&output=csv";
+const SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSGY7qrNl7BjggOazK0Jm3VbDryIKK6g1xIKym_cPzR8mi5hK_Se8sg2pbLzYs42rE7phc46XmnRwLy/pub?gid=663980449&single=true&output=csv";
+const CSV_URL = "https://corsproxy.io/?" + encodeURIComponent(SHEET_CSV);
 
 let state = {
   weeks: [], data: {csat:[],sla:[],ttr:[],incoming:[]},
