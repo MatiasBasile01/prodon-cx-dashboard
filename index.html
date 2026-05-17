@@ -504,29 +504,30 @@ function setCR(k){
 }
 
 function renderCR(){
-  var ws=S.weeks;if(!ws.length)return;
+  var f=getFD();if(!f)return;
   var kpi=S.crKpi;
   var target=kpi==="csat"?94:90;
   var colors={sla:"#1D9E75",ttr:"#378ADD",csat:"#7F77DD"};
   var kColor=colors[kpi]||"#378ADD";
 
-  // Get incoming and kpi values
-  var incVals=ws.map(function(w){return w.inc});
-  var kpiVals=ws.map(function(w){return w[kpi]});
+  var incVals=f.inc;
+  var kpiVals=f[kpi];
+  var labels=f.labels;
 
   var validInc=incVals.filter(function(x){return x!=null});
   var validKpi=kpiVals.filter(function(x){return x!=null});
-  if(!validInc.length&&!validKpi.length)return;
+  if(!validInc.length&&!validKpi.length){document.getElementById("cr").innerHTML="";return;}
 
   var incMax=validInc.length?Math.max.apply(null,validInc)*1.15:1;
   var kpiMin=validKpi.length?Math.min.apply(null,validKpi.concat([target]))*0.94:60;
   var kpiMax=validKpi.length?Math.max.apply(null,validKpi.concat([target]))*1.03:100;
 
+  var n=labels.length;
   var W=600,H=180,pl=44,pr=34,pt=10,pb=28;
   var iW=W-pl-pr,iH=H-pt-pb;
-  var bW=Math.max(3,(iW/ws.length)-3);
+  var bW=Math.max(3,(iW/Math.max(n,1))-3);
 
-  function xsI(i){return(i/ws.length)*iW+(iW/ws.length-bW)/2}
+  function xsI(i){return(i/Math.max(n,1))*iW+(iW/Math.max(n,1)-bW)/2}
   function ysInc(v){return iH-((v/incMax)*iH)}
   function ysKpi(v){return iH-(((v-kpiMin)/(kpiMax-kpiMin))*iH)}
 
@@ -551,26 +552,23 @@ function renderCR(){
   svg+='<line x1="'+pl+'" y1="'+tgtY+'" x2="'+(pl+iW)+'" y2="'+tgtY+'" stroke="#aaa" stroke-width="1" stroke-dasharray="5,3" opacity="0.5"/>';
 
   // Bars: incoming
-  var lastM="";
-  ws.forEach(function(w,i){
+  labels.forEach(function(l,i){
     var x=pl+xsI(i);
-    if(w.inc!=null){
-      var h=(w.inc/incMax)*iH;
+    if(incVals[i]!=null){
+      var h=(incVals[i]/incMax)*iH;
       svg+='<rect x="'+x.toFixed(1)+'" y="'+(pt+iH-h).toFixed(1)+'" width="'+bW+'" height="'+h.toFixed(1)+'" fill="#D85A30" rx="1.5" opacity="0.35"/>';
     }
-    if(w.m!==lastM){
-      svg+='<text x="'+x.toFixed(1)+'" y="'+(pt+iH+16)+'" text-anchor="start" font-size="8" fill="#aaa" font-weight="600">'+mShort(w.m)+'</text>';
-      if(i>0)svg+='<line x1="'+x.toFixed(1)+'" y1="'+pt+'" x2="'+x.toFixed(1)+'" y2="'+(pt+iH)+'" stroke="#e0dfdb" stroke-width="0.5" stroke-dasharray="3,3"/>';
-      lastM=w.m;
+    if(n<=1||i%(Math.ceil(n/8))===0){
+      svg+='<text x="'+(x+bW/2).toFixed(1)+'" y="'+(pt+iH+16)+'" text-anchor="middle" font-size="8" fill="#aaa">'+l+'</text>';
     }
   });
 
   // Line: KPI
   var kpiPts=[];
-  ws.forEach(function(w,i){
-    if(w[kpi]!=null){
+  labels.forEach(function(l,i){
+    if(kpiVals[i]!=null){
       var x=pl+xsI(i)+bW/2;
-      var y=pt+ysKpi(w[kpi]);
+      var y=pt+ysKpi(kpiVals[i]);
       kpiPts.push({x:x,y:y});
     }
   });
@@ -580,6 +578,9 @@ function renderCR(){
     kpiPts.forEach(function(p,i){
       svg+='<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+(i===kpiPts.length-1?3.5:1.5)+'" fill="'+kColor+'"/>';
     });
+  } else if(kpiPts.length===1){
+    svg+='<circle cx="'+kpiPts[0].x.toFixed(1)+'" cy="'+kpiPts[0].y.toFixed(1)+'" r="5" fill="'+kColor+'"/>';
+    svg+='<text x="'+kpiPts[0].x.toFixed(1)+'" y="'+(kpiPts[0].y-10).toFixed(1)+'" text-anchor="middle" font-size="11" font-weight="600" fill="'+kColor+'">'+validKpi[0].toFixed(1)+'%</text>';
   }
 
   document.getElementById("cr").innerHTML=svg;
