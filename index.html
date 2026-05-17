@@ -129,7 +129,7 @@ select option{color:var(--text);background:var(--surface)}
           <button class="chtab" onclick="setCM('ttr')">TTR</button>
         </div>
         <div class="legend" id="leg"></div>
-        <svg id="lc" viewBox="0 0 600 180" style="width:100%;height:180px"></svg>
+        <svg id="lc" viewBox="0 0 600 210" style="width:100%;height:210px"></svg>
       </div>
       <div class="card" style="margin-bottom:0">
         <div class="ctitle">Estado vs. target</div>
@@ -258,7 +258,7 @@ function renderLC(){
   var ds=m==="all"?[{v:f.csat,c:"#2E3192"},{v:f.sla,c:"#00B4D8"},{v:f.ttr,c:"#3B82F6"}]:m==="csat"?[{v:f.csat,c:"#2E3192"}]:m==="sla"?[{v:f.sla,c:"#00B4D8"}]:[{v:f.ttr,c:"#3B82F6"}];
   var all=[];ds.forEach(function(d){d.v.forEach(function(x){if(x!=null)all.push(x)})});if(!all.length){document.getElementById("lc").innerHTML="";return}
   var mn=Math.floor(Math.min.apply(null,all.concat([90]))*0.95),mx=Math.ceil(Math.max.apply(null,all.concat([m==="csat"?94:90]))*1.02);
-  var W=600,H=180,pl=34,pr=8,pt=8,pb=26,iW=W-pl-pr,iH=H-pt-pb;var lb=f.labels;
+  var W=600,H=210,pl=34,pr=8,pt=24,pb=26,iW=W-pl-pr,iH=H-pt-pb;var lb=f.labels;
   function xs(i){return(i/(Math.max(lb.length-1,1)))*iW}function ys(v){return iH-((v-mn)/(mx-mn))*iH}
   var svg="";
   for(var i=0;i<5;i++){var v=mn+(mx-mn)*i/4;svg+='<line x1="'+pl+'" y1="'+(pt+ys(v))+'" x2="'+(pl+iW)+'" y2="'+(pt+ys(v))+'" stroke="#E2E8F0" stroke-width="0.5"/><text x="'+(pl-4)+'" y="'+(pt+ys(v)+4)+'" text-anchor="end" font-size="9" fill="#94A3B8">'+v.toFixed(0)+'%</text>'}
@@ -270,7 +270,14 @@ function renderLC(){
     var ar="M"+vp.map(function(p){return(pl+xs(p.i))+","+(pt+ys(p.x))}).join(" L")+" L"+(pl+xs(vp[vp.length-1].i))+","+(pt+iH)+" L"+(pl+xs(vp[0].i))+","+(pt+iH)+" Z";
     var ln=vp.map(function(p,i){return(i===0?"M":"L")+(pl+xs(p.i))+","+(pt+ys(p.x))}).join(" ");
     svg+='<path d="'+ar+'" fill="'+d.c+'" opacity="0.06"/><path d="'+ln+'" fill="none" stroke="'+d.c+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
-    vp.forEach(function(p,pi){svg+='<circle cx="'+(pl+xs(p.i))+'" cy="'+(pt+ys(p.x))+'" r="'+(pi===vp.length-1?3:1.5)+'" fill="'+d.c+'"/>'})
+    vp.forEach(function(p,pi){
+      var cx2=pl+xs(p.i),cy2=pt+ys(p.x);
+      svg+='<circle cx="'+cx2+'" cy="'+cy2+'" r="'+(pi===vp.length-1?3.5:2.5)+'" fill="'+d.c+'"/>';
+      if(lb.length<=12){
+        var offsetY=m==="all"?-8-(ds.indexOf(d)*11):-10;
+        svg+='<text x="'+cx2+'" y="'+(cy2+offsetY)+'" text-anchor="middle" font-size="9" font-weight="600" fill="'+d.c+'">'+p.x.toFixed(1)+'%</text>';
+      }
+    })
   });document.getElementById("lc").innerHTML=svg
 }
 function gaugeSVG(val,tgt){
