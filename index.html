@@ -264,7 +264,7 @@ function renderLC(){
   var svg="";
   for(var i=0;i<5;i++){var v=mn+(mx-mn)*i/4;svg+='<line x1="'+pl+'" y1="'+(pt+ys(v))+'" x2="'+(pl+iW)+'" y2="'+(pt+ys(v))+'" stroke="#E2E8F0" stroke-width="0.5"/><text x="'+(pl-4)+'" y="'+(pt+ys(v)+4)+'" text-anchor="end" font-size="9" fill="#94A3B8">'+v.toFixed(0)+'%</text>'}
   lb.forEach(function(l,i){if(!single&&lb.length>1&&i%(Math.ceil(lb.length/7))!==0)return;svg+='<text x="'+(pl+xs(i))+'" y="'+(pt+iH+16)+'" text-anchor="middle" font-size="9" fill="#94A3B8">'+l+'</text>'});
-  var tgts=[90].concat(m==="csat"?[94]:[]);tgts.forEach(function(t){svg+='<line x1="'+pl+'" y1="'+(pt+ys(t))+'" x2="'+(pl+iW)+'" y2="'+(pt+ys(t))+'" stroke="#94A3B8" stroke-width="1" stroke-dasharray="5,3" opacity="0.5"/>'});
+  var tgts=m==="all"?[90,94]:m==="csat"?[94]:[90];tgts.forEach(function(t){svg+='<line x1="'+pl+'" y1="'+(pt+ys(t))+'" x2="'+(pl+iW)+'" y2="'+(pt+ys(t))+'" stroke="#94A3B8" stroke-width="1" stroke-dasharray="5,3" opacity="0.5"/>'});
   ds.forEach(function(d){
     var vp=[];d.v.forEach(function(x,i){if(x!=null)vp.push({i:i,x:x})});if(!vp.length)return;
     if(single){
