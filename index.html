@@ -194,9 +194,16 @@ function toMonthId(s){
 }
 function isMonthSummary(cell){
   if(!cell)return false;
-  var c=cell.toLowerCase();
-  return /\d{4}/.test(c)&&["agosto","septiembre","octubre","noviembre","diciembre",
-    "enero","febrero","marzo","abril","mayo","junio","julio"].some(function(m){return c.indexOf(m)>=0});
+  // Format MM/YYYY e.g. "08/2025"
+  return /^\d{2}\/\d{4}$/.test(cell.trim());
+}
+function mesRowToMonthId(cell){
+  // "08/2025" → "ago-25"
+  var map={"01":"ene","02":"feb","03":"mar","04":"abr","05":"may","06":"jun",
+    "07":"jul","08":"ago","09":"sep","10":"oct","11":"nov","12":"dic"};
+  var m=cell.trim().match(/^(\d{2})\/(\d{4})$/);
+  if(!m)return null;
+  return (map[m[1]]||m[1])+"-"+m[2].slice(2);
 }
 
 // ── LOAD ──────────────────────────────────────────────────────────────────────
@@ -251,33 +258,35 @@ function parseCSV(rows){
   }
   if(startCol<0) throw new Error("No se encontró 'Prodon' en fila Incoming. Valores encontrados: "+incomRow.slice(0,50).join("|"));
 
-  // Collect all Prodon columns (stop after 5 consecutive empty in tickRow+csatRow)
+  var prodonRow = rows.find(function(r){return r[0]==="[AR] Prodon"});
+  var dateRow   = rows.find(function(r){return r[0]==="Week" && r.some(function(c){return c&&/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(c)})});
+
+  if(!csatRow)  throw new Error("No se encontró fila CSAT");
+  if(!slaRow)   throw new Error("No se encontró fila SLA");
+  if(!ttrRow)   throw new Error("No se encontró fila TTR");
+  if(!tickRow)  throw new Error("No se encontró fila Tickets Created");
+
+  // Collect Prodon columns, stop after 5 consecutive empty
   var cols=[];
   var empty=0;
-  var maxLen=Math.max(tickRow.length,csatRow.length,incomRow.length);
+  var maxLen=Math.max(tickRow.length,csatRow.length,equipoRow.length);
   for(var c=startCol;c<maxLen;c++){
-    var t=(tickRow[c]||"").trim();
-    var cs=(csatRow[c]||"").trim();
-    if(t===""&&cs===""){
-      empty++;
-      if(empty>=5)break;
-    } else {
-      empty=0;
-      cols.push(c);
-    }
+    var t=(tickRow[c]||"").trim(), cs=(csatRow[c]||"").trim();
+    if(t===""&&cs===""){empty++;if(empty>=5)break;}
+    else{empty=0;cols.push(c);}
   }
-  if(!cols.length) throw new Error("No se encontraron columnas con datos desde col "+startCol);
+  if(!cols.length) throw new Error("No hay columnas con datos desde col "+startCol);
 
   var months=[], weeks=[];
-
   for(var ci=0;ci<cols.length;ci++){
     var c=cols[ci];
+    var mesCell=(mesRow?mesRow[c]||"":"").trim();
     var colLabel=(prodonRow?prodonRow[c]||"":"").trim();
     var dateLabel=(dateRow?dateRow[c]||"":"").trim();
 
-    if(isMonthSummary(colLabel)){
+    if(isMonthSummary(mesCell)){
       // Monthly summary column
-      var mid=toMonthId(colLabel);
+      var mid=mesRowToMonthId(mesCell);
       if(!mid)continue;
       months.push({
         id:mid, label:mFull(mid),
@@ -285,20 +294,20 @@ function parseCSV(rows){
         inc:pnum(tickRow[c]), cls:closedRow?pnum(closedRow[c]):null
       });
     } else {
-      // Weekly column — find parent month by looking back
-      var mName="";
-      if(prodonRow){
+      // Weekly column
+      // Find parent month by looking back in mesRow
+      var parentMid="?";
+      if(mesRow){
         for(var mc=c;mc>=0;mc--){
-          var v=(prodonRow[mc]||"").trim();
-          if(isMonthSummary(v)){mName=v;break;}
+          var mv=(mesRow[mc]||"").trim();
+          if(isMonthSummary(mv)){parentMid=mesRowToMonthId(mv)||"?";break;}
         }
       }
-      var mid2=toMonthId(mName)||"?";
       weeks.push({
         id:weeks.length,
         l:colLabel||("W"+(weeks.length+1)),
         s:dateLabel||("col"+c),
-        m:mid2,
+        m:parentMid,
         csat:pnum(csatRow[c]), sla:pnum(slaRow[c]), ttr:pnum(ttrRow[c]),
         inc:pnum(tickRow[c]), cls:closedRow?pnum(closedRow[c]):null
       });
