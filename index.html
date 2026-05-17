@@ -224,9 +224,21 @@ function loadData(){
     download:true, skipEmptyLines:true,
     complete(res){
       try{ parseCSV(res.data); }
-      catch(e){ console.warn("CSV parse failed, using static:",e.message); useStatic(); }
+      catch(e){
+        console.error("CSV parse error:", e.message);
+        document.getElementById("loading").style.display="none";
+        const eb=document.getElementById("err");
+        eb.style.display="block";
+        eb.innerHTML=`<strong>Error parseando CSV:</strong> ${e.message}<br><br>
+          <a href="/api/csv" target="_blank">Ver CSV crudo</a>`;
+      }
     },
-    error(){ useStatic(); }
+    error(e){
+      document.getElementById("loading").style.display="none";
+      const eb=document.getElementById("err");
+      eb.style.display="block";
+      eb.innerHTML=`<strong>Error cargando CSV:</strong> ${JSON.stringify(e)}`;
+    }
   });
 }
 
