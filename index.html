@@ -259,14 +259,21 @@ function renderLC(){
   var all=[];ds.forEach(function(d){d.v.forEach(function(x){if(x!=null)all.push(x)})});if(!all.length){document.getElementById("lc").innerHTML="";return}
   var mn=Math.floor(Math.min.apply(null,all.concat([90]))*0.95),mx=Math.ceil(Math.max.apply(null,all.concat([m==="csat"?94:90]))*1.02);
   var W=600,H=210,pl=34,pr=8,pt=24,pb=26,iW=W-pl-pr,iH=H-pt-pb;var lb=f.labels;
-  function xs(i){return(i/(Math.max(lb.length-1,1)))*iW}function ys(v){return iH-((v-mn)/(mx-mn))*iH}
+  var single=lb.length===1;
+  function xs(i){return single?iW/2:(i/(Math.max(lb.length-1,1)))*iW}function ys(v){return iH-((v-mn)/(mx-mn))*iH}
   var svg="";
   for(var i=0;i<5;i++){var v=mn+(mx-mn)*i/4;svg+='<line x1="'+pl+'" y1="'+(pt+ys(v))+'" x2="'+(pl+iW)+'" y2="'+(pt+ys(v))+'" stroke="#E2E8F0" stroke-width="0.5"/><text x="'+(pl-4)+'" y="'+(pt+ys(v)+4)+'" text-anchor="end" font-size="9" fill="#94A3B8">'+v.toFixed(0)+'%</text>'}
-  lb.forEach(function(l,i){if(lb.length>1&&i%(Math.ceil(lb.length/7))!==0)return;svg+='<text x="'+(pl+xs(i))+'" y="'+(pt+iH+16)+'" text-anchor="middle" font-size="9" fill="#94A3B8">'+l+'</text>'});
+  lb.forEach(function(l,i){if(!single&&lb.length>1&&i%(Math.ceil(lb.length/7))!==0)return;svg+='<text x="'+(pl+xs(i))+'" y="'+(pt+iH+16)+'" text-anchor="middle" font-size="9" fill="#94A3B8">'+l+'</text>'});
   var tgts=[90].concat(m==="csat"?[94]:[]);tgts.forEach(function(t){svg+='<line x1="'+pl+'" y1="'+(pt+ys(t))+'" x2="'+(pl+iW)+'" y2="'+(pt+ys(t))+'" stroke="#94A3B8" stroke-width="1" stroke-dasharray="5,3" opacity="0.5"/>'});
   ds.forEach(function(d){
     var vp=[];d.v.forEach(function(x,i){if(x!=null)vp.push({i:i,x:x})});if(!vp.length)return;
-    if(lb.length===1){svg+='<circle cx="'+(pl+xs(0))+'" cy="'+(pt+ys(vp[0].x))+'" r="5" fill="'+d.c+'"/><text x="'+(pl+xs(0))+'" y="'+(pt+ys(vp[0].x)-10)+'" text-anchor="middle" font-size="11" font-weight="600" fill="'+d.c+'">'+vp[0].x.toFixed(1)+'%</text>';return}
+    if(single){
+      var cx=pl+iW/2,cy=pt+ys(vp[0].x);
+      var dsIdx=ds.indexOf(d);
+      var yOff=-14-(dsIdx*16);
+      svg+='<circle cx="'+cx+'" cy="'+cy+'" r="6" fill="'+d.c+'" opacity="0.85"/>';
+      svg+='<text x="'+cx+'" y="'+(cy+yOff)+'" text-anchor="middle" font-size="12" font-weight="700" fill="'+d.c+'">'+vp[0].x.toFixed(1)+'%</text>';
+      return}
     var ar="M"+vp.map(function(p){return(pl+xs(p.i))+","+(pt+ys(p.x))}).join(" L")+" L"+(pl+xs(vp[vp.length-1].i))+","+(pt+iH)+" L"+(pl+xs(vp[0].i))+","+(pt+iH)+" Z";
     var ln=vp.map(function(p,i){return(i===0?"M":"L")+(pl+xs(p.i))+","+(pt+ys(p.x))}).join(" ");
     svg+='<path d="'+ar+'" fill="'+d.c+'" opacity="0.06"/><path d="'+ln+'" fill="none" stroke="'+d.c+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
