@@ -234,7 +234,7 @@ function parseCSV(rows){
   var ttrRow    = findR("TTR en Target");
   var tickRow   = findR("# Tickets Created");
   var closedRow = findR("# Tickets Closed");
-  var incomRow  = findR("Incoming");
+  var incomRow  = rows.find(function(r){return (r[0]||"").trim()==="Incoming"});
   var prodonRow = rows.find(function(r){return r[0]==="[AR] Prodon"});
   var dateRow   = rows.find(function(r){return r[0]==="Week" && r.some(function(c){return c&&/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(c)})});
 
