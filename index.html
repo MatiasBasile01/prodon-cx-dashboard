@@ -272,23 +272,20 @@ function parseCSV(rows){
   // Date row: find row with dates in dd/mm/yyyy format
   const dateRow=rows.find(r=>r[0]==="Week"&&r.some(c=>c&&/\d{1,2}\/\d{1,2}\/\d{4}/.test(c)));
 
-  // Find start column: first column in dateRow that has a dd/mm/yyyy date
-  // OR first column where prodonRow has a month name with year
-  let startCol = -1;
-  if(dateRow){
-    startCol = dateRow.findIndex(c=>c&&/\d{1,2}\/\d{1,2}\/\d{4}/.test(c));
-    // Go back one to include the month summary column before the first week
-    if(startCol > 0) startCol--;
-  }
-  // Fallback: find first column in prodonRow that has a month name + year
-  if(startCol < 0 && prodonRow){
-    startCol = prodonRow.findIndex(c=>isMonthCol(c));
-  }
-  if(startCol < 0) throw new Error("No se encontró columna de inicio Prodon");
+  // Find start column: first col where "Incoming" row says "Prodon"
+  const incomRow = findR("Incoming");
+  if(!incomRow) throw new Error("Sin fila Incoming");
+  startCol = incomRow.findIndex((v,i)=>i>0&&v==="Prodon");
+  if(startCol<0) throw new Error("No se encontró columna Prodon en fila Incoming");
 
-  // Build pCols from startCol to end
+  // Build pCols: from startCol, stop when both tickRow and csatRow are empty for 3+ consecutive cols
   const pCols = [];
-  for(let i=startCol; i<(tickRow||csatRow).length; i++) pCols.push(i);
+  let emptyStreak = 0;
+  for(let i=startCol; i<Math.max(tickRow.length, csatRow.length); i++){
+    const hasData = (tickRow[i]&&tickRow[i].trim()!=="") || (csatRow[i]&&csatRow[i].trim()!=="");
+    if(!hasData){ emptyStreak++; if(emptyStreak>=3) break; }
+    else{ emptyStreak=0; pCols.push(i); }
+  }
 
   const months=[], weeks=[];
 
@@ -341,7 +338,7 @@ function parseCSV(rows){
   S.months=months; S.weeks=weeks;
   S.selMonth=months.length?months[months.length-1].id:"";
   S.selWeek=weeks.length?weeks[weeks.length-1].id:0;
-  S.rFrom=0; S.rTo=Math.max(0,weeks.length-1);
+  S.rFrom=0; S.rTo=weeks.length?weeks[weeks.length-1].id:0;
   boot();
 }
 
