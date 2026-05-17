@@ -188,16 +188,23 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
 // ─── STATIC FALLBACK ──────────────────────────────────────────────────────────
 // months: consolidated monthly values from the Sheet summary columns
 const MONTHS = [
-  {id:"ago-25",  label:"Agosto 2025",     csat:93.5, sla:85, ttr:86, inc:2903, cls:2533},
-  {id:"sep-25",  label:"Septiembre 2025", csat:94.0, sla:83, ttr:88, inc:3082, cls:2379},
-  {id:"oct-25",  label:"Octubre 2025",    csat:95.7, sla:86, ttr:90, inc:2913, cls:2760},
-  {id:"nov-25",  label:"Noviembre 2025",  csat:96.8, sla:87, ttr:91, inc:2533, cls:2569},
-  {id:"dic-25",  label:"Diciembre 2025",  csat:95.8, sla:88, ttr:93, inc:2003, cls:1897},
-  {id:"ene-26",  label:"Enero 2026",      csat:95.3, sla:90, ttr:95, inc:2183, cls:2105},
-  {id:"feb-26",  label:"Febrero 2026",    csat:97.2, sla:89, ttr:95, inc:2276, cls:2213},
-  {id:"mar-26",  label:"Marzo 2026",      csat:97.3, sla:88, ttr:96, inc:2934, cls:2771},
-  {id:"abr-26",  label:"Abril 2026",      csat:95.0, sla:86, ttr:94, inc:2709, cls:2635},
-  {id:"may-26",  label:"Mayo 2026",       csat:97.8, sla:86, ttr:96, inc:731,  cls:659},
+  {id:"ago-25",  label:"Agosto 2025",     csat:93.5, sla:80, ttr:86, inc:2903, cls:2533},
+  {id:"sep-25",  label:"Septiembre 2025", csat:94.6, sla:82, ttr:86, inc:3082, cls:2533},
+  {id:"oct-25",  label:"Octubre 2025",    csat:94.0, sla:83, ttr:87, inc:2913, cls:2760},
+  {id:"nov-25",  label:"Noviembre 2025",  csat:95.4, sla:81, ttr:88, inc:2517, cls:2379},
+  {id:"dic-25",  label:"Diciembre 2025",  csat:92.0, sla:82, ttr:90, inc:2003, cls:1897},
+  {id:"ene-26",  label:"Enero 2026",      csat:93.6, sla:79, ttr:86, inc:2183, cls:2105},
+  {id:"feb-26",  label:"Febrero 2026",    csat:93.0, sla:82, ttr:87, inc:2276, cls:2213},
+  {id:"mar-26",  label:"Marzo 2026",      csat:93.4, sla:81, ttr:86, inc:3753, cls:3518},
+  {id:"abr-26",  label:"Abril 2026",      csat:93.4, sla:73, ttr:83, inc:4776, cls:3700},
+  {id:"may-26",  label:"Mayo 2026",       csat:92.0, sla:74, ttr:83, inc:3781, cls:3718},
+  {id:"jun-26",  label:"Junio 2026",      csat:94.5, sla:81, ttr:86, inc:2903, cls:2359},
+  {id:"jul-26",  label:"Julio 2026",      csat:94.9, sla:83, ttr:88, inc:3082, cls:2533},
+  {id:"ago-26",  label:"Agosto 2026",     csat:91.0, sla:85, ttr:91, inc:2517, cls:2379},
+  {id:"sep-26",  label:"Septiembre 2026", csat:94.2, sla:86, ttr:91, inc:2913, cls:2760},
+  {id:"oct-26",  label:"Octubre 2026",    csat:97.6, sla:82, ttr:91, inc:2533, cls:2379},
+  {id:"nov-26",  label:"Noviembre 2026",  csat:95.8, sla:84, ttr:93, inc:2003, cls:1897},
+  {id:"dic-26",  label:"Diciembre 2026",  csat:98.6, sla:87, ttr:93, inc:2183, cls:2105},
 ];
 
 // weeks: individual week values
