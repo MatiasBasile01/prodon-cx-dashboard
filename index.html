@@ -147,11 +147,6 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
         <span class="li"><span class="ld" style="border:1px dashed #aaa;background:transparent"></span>Target</span>
       </div>
       <svg id="cr" viewBox="0 0 600 180" style="width:100%;height:180px"></svg>
-      <!-- Distribución semanal del incoming -->
-      <div id="dist-wrap" style="margin-top:16px;display:none">
-        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Distribución semanal del incoming</div>
-        <div id="dist-chart"></div>
-      </div>
     </div>
   </div>
 </div>
@@ -393,7 +388,7 @@ function render(){
   document.getElementById("notice-w").style.display=(f.type!=="month"&&f.type!=="month-range")?"flex":"none";
   document.getElementById("lc-sub").textContent=f.label+(f.items.length>1?" · "+f.items.length+" semanas":"");
   document.getElementById("dc-sub").textContent=f.label;
-  renderKPIs(f);renderLC();renderLeg();renderGauges(f);renderIC(f);renderDC(f);renderCR();renderDist(f);
+  renderKPIs(f);renderLC();renderLeg();renderGauges(f);renderIC(f);renderDC(f);renderCR();
 }
 function sparkSVG(vals,color){
   var v=vals.map(function(x,i){return{i:i,x:x}}).filter(function(p){return p.x!=null});
@@ -589,59 +584,6 @@ function renderCR(){
   }
 
   document.getElementById("cr").innerHTML=svg;
-}
-
-function renderDist(f){
-  var wrap=document.getElementById("dist-wrap");
-  var chart=document.getElementById("dist-chart");
-
-  // Only show for monthly or month-range views
-  if(f.type!=="month"&&f.type!=="month-range"){wrap.style.display="none";return;}
-
-  // For each month in the selection, find its weeks and calculate distribution
-  var monthIds=[];
-  if(f.type==="month"){monthIds=[S.selMonth];}
-  else{
-    var from=Math.min(S.mFrom,S.mTo),to=Math.max(S.mFrom,S.mTo);
-    monthIds=S.months.filter(function(m,i){return i>=from&&i<=to}).map(function(m){return m.id});
-  }
-
-  var html="";
-  monthIds.forEach(function(mid){
-    var mo=S.months.find(function(m){return m.id===mid});
-    var ws=S.weeks.filter(function(w){return w.m===mid&&w.inc!=null});
-    if(!ws.length||!mo)return;
-
-    var totalWeekly=ws.reduce(function(a,w){return a+(w.inc||0)},0);
-    if(totalWeekly===0)return;
-
-    var colors=["#D85A30","#E8845C","#F0A882","#F5C8AD","#FADDD0"];
-
-    html+='<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:6px">'+mFull(mid)+' <span style="color:var(--text3);font-weight:400">· '+mo.inc+' tickets (mes) · '+totalWeekly+' (suma semanas)</span></div>';
-    html+='<div style="display:flex;height:28px;border-radius:6px;overflow:hidden;margin-bottom:4px">';
-    ws.forEach(function(w,i){
-      var pct=(w.inc/totalWeekly)*100;
-      var c=colors[i%colors.length];
-      html+='<div style="width:'+pct+'%;background:'+c+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;min-width:20px" title="'+w.l+' · '+w.s+': '+w.inc+' tickets ('+pct.toFixed(1)+'%)">';
-      if(pct>=8)html+=pct.toFixed(0)+"%";
-      html+='</div>';
-    });
-    html+='</div>';
-    html+='<div style="display:flex;gap:10px;flex-wrap:wrap">';
-    ws.forEach(function(w,i){
-      var pct=(w.inc/totalWeekly)*100;
-      var c=colors[i%colors.length];
-      html+='<span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)"><span style="width:8px;height:8px;border-radius:2px;background:'+c+';display:inline-block"></span>'+w.l+' ('+w.s+'): <strong>'+pct.toFixed(1)+'%</strong> · '+w.inc+'</span>';
-    });
-    html+='</div></div>';
-  });
-
-  if(html){
-    wrap.style.display="block";
-    chart.innerHTML=html;
-  } else {
-    wrap.style.display="none";
-  }
 }
 
 loadData();
