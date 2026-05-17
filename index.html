@@ -186,70 +186,11 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
 // ─── STATIC FALLBACK ──────────────────────────────────────────────────────────
-// months: consolidated monthly values from the Sheet summary columns
-const MONTHS = [
-  {id:"ago-25",  label:"Agosto 2025",     csat:93.5, sla:80, ttr:86, inc:2903, cls:2533},
-  {id:"sep-25",  label:"Septiembre 2025", csat:94.6, sla:82, ttr:86, inc:3082, cls:2533},
-  {id:"oct-25",  label:"Octubre 2025",    csat:94.0, sla:83, ttr:87, inc:2913, cls:2760},
-  {id:"nov-25",  label:"Noviembre 2025",  csat:95.4, sla:81, ttr:88, inc:2517, cls:2379},
-  {id:"dic-25",  label:"Diciembre 2025",  csat:92.0, sla:82, ttr:90, inc:2003, cls:1897},
-  {id:"ene-26",  label:"Enero 2026",      csat:93.6, sla:79, ttr:86, inc:2183, cls:2105},
-  {id:"feb-26",  label:"Febrero 2026",    csat:93.0, sla:82, ttr:87, inc:2276, cls:2213},
-  {id:"mar-26",  label:"Marzo 2026",      csat:93.4, sla:81, ttr:86, inc:3753, cls:3518},
-  {id:"abr-26",  label:"Abril 2026",      csat:93.4, sla:73, ttr:83, inc:4776, cls:3700},
-  {id:"may-26",  label:"Mayo 2026",       csat:92.0, sla:74, ttr:83, inc:3781, cls:3718},
-  {id:"jun-26",  label:"Junio 2026",      csat:94.5, sla:81, ttr:86, inc:2903, cls:2359},
-  {id:"jul-26",  label:"Julio 2026",      csat:94.9, sla:83, ttr:88, inc:3082, cls:2533},
-  {id:"ago-26",  label:"Agosto 2026",     csat:91.0, sla:85, ttr:91, inc:2517, cls:2379},
-  {id:"sep-26",  label:"Septiembre 2026", csat:94.2, sla:86, ttr:91, inc:2913, cls:2760},
-  {id:"oct-26",  label:"Octubre 2026",    csat:97.6, sla:82, ttr:91, inc:2533, cls:2379},
-  {id:"nov-26",  label:"Noviembre 2026",  csat:95.8, sla:84, ttr:93, inc:2003, cls:1897},
-  {id:"dic-26",  label:"Diciembre 2026",  csat:98.6, sla:87, ttr:93, inc:2183, cls:2105},
-];
+// No static month data — all data comes from live CSV via /api/csv
+const MONTHS = [];
 
-// weeks: individual week values
-const WEEKS = [
-  {id:0, l:"W32",s:"4-ago",  m:"ago-25",  csat:93.5,sla:85,ttr:86,inc:654, cls:587},
-  {id:1, l:"W33",s:"11-ago", m:"ago-25",  csat:93.1,sla:86,ttr:90,inc:638, cls:612},
-  {id:2, l:"W34",s:"18-ago", m:"ago-25",  csat:94.0,sla:80,ttr:84,inc:895, cls:531},
-  {id:3, l:"W35",s:"25-ago", m:"ago-25",  csat:96.3,sla:81,ttr:85,inc:693, cls:356},
-  {id:4, l:"W36",s:"1-sep",  m:"sep-25",  csat:94.6,sla:82,ttr:86,inc:640, cls:567},
-  {id:5, l:"W37",s:"8-sep",  m:"sep-25",  csat:94.9,sla:86,ttr:88,inc:595, cls:513},
-  {id:6, l:"W38",s:"15-sep", m:"sep-25",  csat:91.0,sla:87,ttr:90,inc:666, cls:663},
-  {id:7, l:"W39",s:"22-sep", m:"sep-25",  csat:96.0,sla:85,ttr:91,inc:572, cls:588},
-  {id:8, l:"W40",s:"29-sep", m:"sep-25",  csat:94.5,sla:83,ttr:91,inc:566, cls:569},
-  {id:9, l:"W41",s:"6-oct",  m:"oct-25",  csat:92.0,sla:89,ttr:94,inc:504, cls:444},
-  {id:10,l:"W42",s:"13-oct", m:"oct-25",  csat:94.2,sla:85,ttr:90,inc:610, cls:602},
-  {id:11,l:"W43",s:"20-oct", m:"oct-25",  csat:95.7,sla:86,ttr:93,inc:751, cls:560},
-  {id:12,l:"W44",s:"27-oct", m:"oct-25",  csat:97.6,sla:85,ttr:93,inc:768, cls:530},
-  {id:13,l:"W45",s:"3-nov",  m:"nov-25",  csat:94.8,sla:81,ttr:88,inc:660, cls:564},
-  {id:14,l:"W46",s:"10-nov", m:"nov-25",  csat:96.3,sla:82,ttr:90,inc:630, cls:714},
-  {id:15,l:"W47",s:"17-nov", m:"nov-25",  csat:96.8,sla:84,ttr:91,inc:524, cls:724},
-  {id:16,l:"W48",s:"24-nov", m:"nov-25",  csat:95.7,sla:87,ttr:91,inc:599, cls:705},
-  {id:17,l:"W49",s:"1-dic",  m:"dic-25",  csat:98.6,sla:87,ttr:93,inc:589, cls:557},
-  {id:18,l:"W50",s:"8-dic",  m:"dic-25",  csat:95.8,sla:88,ttr:94,inc:501, cls:504},
-  {id:19,l:"W51",s:"15-dic", m:"dic-25",  csat:null, sla:90,ttr:95,inc:450, cls:460},
-  {id:20,l:"W52",s:"22-dic", m:"dic-25",  csat:99.0,sla:87,ttr:93,inc:308, cls:222},
-  {id:21,l:"W53",s:"29-dic", m:"dic-25",  csat:95.3,sla:81,ttr:93,inc:312, cls:304},
-  {id:22,l:"W1", s:"5-ene",  m:"ene-26",  csat:88.6,sla:87,ttr:95,inc:485, cls:476},
-  {id:23,l:"W2", s:"12-ene", m:"ene-26",  csat:92.3,sla:87,ttr:93,inc:559, cls:547},
-  {id:24,l:"W3", s:"19-ene", m:"ene-26",  csat:95.3,sla:72,ttr:83,inc:482, cls:522},
-  {id:25,l:"W4", s:"26-ene", m:"ene-26",  csat:96.7,sla:67,ttr:83,inc:551, cls:503},
-  {id:26,l:"W5", s:"2-feb",  m:"feb-26",  csat:90.6,sla:83,ttr:81,inc:554, cls:544},
-  {id:27,l:"W6", s:"9-feb",  m:"feb-26",  csat:95.2,sla:90,ttr:92,inc:618, cls:591},
-  {id:28,l:"W7", s:"16-feb", m:"feb-26",  csat:98.6,sla:88,ttr:95,inc:470, cls:472},
-  {id:29,l:"W8", s:"23-feb", m:"feb-26",  csat:94.8,sla:92,ttr:94,inc:628, cls:626},
-  {id:30,l:"W9", s:"2-mar",  m:"mar-26",  csat:96.7,sla:88,ttr:95,inc:702, cls:674},
-  {id:31,l:"W10",s:"9-mar",  m:"mar-26",  csat:97.2,sla:89,ttr:94,inc:626, cls:629},
-  {id:32,l:"W11",s:"16-mar", m:"mar-26",  csat:97.2,sla:86,ttr:94,inc:670, cls:639},
-  {id:33,l:"W12",s:"23-mar", m:"mar-26",  csat:98.2,sla:89,ttr:95,inc:630, cls:593},
-  {id:34,l:"W13",s:"30-mar", m:"mar-26",  csat:97.3,sla:88,ttr:94,inc:553, cls:553},
-  {id:35,l:"W14",s:"6-abr",  m:"abr-26",  csat:94.0,sla:89,ttr:95,inc:681, cls:622},
-  {id:36,l:"W15",s:"13-abr", m:"abr-26",  csat:93.6,sla:88,ttr:95,inc:723, cls:692},
-  {id:37,l:"W16",s:"20-abr", m:"abr-26",  csat:98.5,sla:88,ttr:96,inc:663, cls:653},
-  {id:38,l:"W17",s:"27-abr", m:"abr-26",  csat:96.8,sla:95,ttr:98,inc:459, cls:463},
-  {id:39,l:"W18",s:"4-may",  m:"may-26",  csat:95.3,sla:86,ttr:96,inc:731, cls:659},
-];
+// No static week data — all data comes from live CSV via /api/csv
+const WEEKS = [];
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let S={
