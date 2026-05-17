@@ -287,8 +287,24 @@ function parseCSV(rows){
   // Find start column: first col where "Incoming" row says "Prodon"
   const incomRow = findR("Incoming");
   if(!incomRow) throw new Error("Sin fila Incoming");
-  startCol = incomRow.findIndex((v,i)=>i>0&&v==="Prodon");
-  if(startCol<0) throw new Error("No se encontró columna Prodon en fila Incoming");
+  startCol = incomRow.findIndex((v,i)=>i>0&&(v||"").trim()==="Prodon");
+  if(startCol<0) throw new Error("No se encontró 'Prodon' en fila Incoming");
+
+  // Build pCols: all columns from startCol where tickRow or csatRow have data
+  // Stop after 5 consecutive empty columns
+  const pCols = [];
+  let emptyStreak = 0;
+  const maxCol = Math.max(tickRow.length, csatRow.length, incomRow.length);
+  for(let i=startCol; i<maxCol; i++){
+    const t=(tickRow[i]||"").trim(), c=(csatRow[i]||"").trim();
+    if(t===""&&c===""){
+      emptyStreak++;
+      if(emptyStreak>=5) break;
+    } else {
+      emptyStreak=0;
+      pCols.push(i);
+    }
+  }
 
   // Build pCols: from startCol, stop when both tickRow and csatRow are empty for 3+ consecutive cols
   const pCols = [];
