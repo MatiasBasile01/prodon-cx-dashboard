@@ -73,9 +73,13 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
   </div>
   <div class="frow">
     <button class="tbtn on" id="bm" onclick="setView('mensual')">Mensual</button>
+    <button class="tbtn" id="bmr" onclick="setView('rango-meses')">Rango meses</button>
     <button class="tbtn" id="bs" onclick="setView('semanal')">Semanal</button>
     <button class="tbtn" id="br" onclick="setView('rango')">Rango semanas</button>
     <span id="ctrl-mensual"><select id="sel-month" onchange="onFC()"></select></span>
+    <span id="ctrl-rango-meses" style="display:none;align-items:center;gap:6px">
+      <select id="mFrom" onchange="onFC()"></select><span class="sep">→</span><select id="mTo" onchange="onFC()"></select>
+    </span>
     <span id="ctrl-semanal" style="display:none"><select id="sel-week" onchange="onFC()"></select></span>
     <span id="ctrl-rango" style="display:none;align-items:center;gap:6px">
       <select id="rFrom" onchange="onFC()"></select><span class="sep">→</span><select id="rTo" onchange="onFC()"></select>
@@ -142,7 +146,7 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-var S={months:[],weeks:[],view:"mensual",selMonth:"",selWeek:0,rFrom:0,rTo:0,cm:"all",loaded:false};
+var S={months:[],weeks:[],view:"mensual",selMonth:"",selWeek:0,rFrom:0,rTo:0,mFrom:0,mTo:0,cm:"all",loaded:false};
 
 function myAvg(a){var v=a.filter(function(x){return x!=null});return v.length?v.reduce(function(a,b){return a+b},0)/v.length:null}
 function mySum(a){return a.filter(function(x){return x!=null}).reduce(function(a,b){return a+b},0)}
@@ -296,6 +300,7 @@ function parseCSV(rows){
   S.selMonth=months.length?months[months.length-1].id:"";
   S.selWeek=weeks.length?weeks[weeks.length-1].id:0;
   S.rFrom=0;S.rTo=weeks.length?weeks[weeks.length-1].id:0;
+  S.mFrom=0;S.mTo=months.length?months.length-1:0;
   boot();
 }
 
@@ -314,12 +319,18 @@ function buildSelectors(){
   var rf=document.getElementById("rFrom"),rt=document.getElementById("rTo");
   var wo=S.weeks.map(function(w){return'<option value="'+w.id+'">'+w.l+' · '+w.s+'</option>'}).join("");
   rf.innerHTML=wo;rt.innerHTML=wo;rf.value=S.rFrom;rt.value=S.rTo;
+  // Month range selectors
+  var mf=document.getElementById("mFrom"),mt=document.getElementById("mTo");
+  var mo2=S.months.map(function(m,i){return'<option value="'+i+'">'+m.label+'</option>'}).join("");
+  mf.innerHTML=mo2;mt.innerHTML=mo2;mf.value=S.mFrom;mt.value=S.mTo;
 }
 function setView(v){
   S.view=v;
-  ["mensual","semanal","rango"].forEach(function(x){
-    document.getElementById("b"+x[0]).classList.toggle("on",v===x);
-    document.getElementById("ctrl-"+x).style.display=v===x?(x==="rango"?"flex":""):"none";
+  ["mensual","rango-meses","semanal","rango"].forEach(function(x){
+    var btn=document.getElementById("b"+(x==="mensual"?"m":x==="rango-meses"?"mr":x==="semanal"?"s":"r"));
+    if(btn)btn.classList.toggle("on",v===x);
+    var ctrl=document.getElementById("ctrl-"+x);
+    if(ctrl)ctrl.style.display=v===x?(x==="rango"||x==="rango-meses"?"flex":""):"none";
   });
   render();
 }
@@ -328,6 +339,8 @@ function onFC(){
   S.selWeek=+document.getElementById("sel-week").value;
   S.rFrom=+document.getElementById("rFrom").value;
   S.rTo=+document.getElementById("rTo").value;
+  S.mFrom=+document.getElementById("mFrom").value;
+  S.mTo=+document.getElementById("mTo").value;
   render();
 }
 function setCM(m){
@@ -341,13 +354,23 @@ function getFD(){
     if(!mo)return null;
     return{type:"month",label:mo.label,items:[mo],labels:[mo.label],csat:[mo.csat],sla:[mo.sla],ttr:[mo.ttr],inc:[mo.inc],cls:[mo.cls]};
   }
+  if(S.view==="rango-meses"){
+    var from=Math.min(S.mFrom,S.mTo),to=Math.max(S.mFrom,S.mTo);
+    var ms=S.months.filter(function(m,i){return i>=from&&i<=to});
+    if(!ms.length)return null;
+    return{type:"month-range",label:ms[0].label+" → "+ms[ms.length-1].label,items:ms,
+      labels:ms.map(function(m){return mShort(m.id)}),
+      csat:ms.map(function(m){return m.csat}),sla:ms.map(function(m){return m.sla}),
+      ttr:ms.map(function(m){return m.ttr}),inc:ms.map(function(m){return m.inc}),
+      cls:ms.map(function(m){return m.cls})};
+  }
   if(S.view==="semanal"){
     var w=S.weeks.find(function(x){return x.id===S.selWeek});
     if(!w)return null;
     return{type:"week",label:w.l+" ("+w.s+")",items:[w],labels:[w.s],csat:[w.csat],sla:[w.sla],ttr:[w.ttr],inc:[w.inc],cls:[w.cls]};
   }
-  var from=Math.min(S.rFrom,S.rTo),to=Math.max(S.rFrom,S.rTo);
-  var ws=S.weeks.filter(function(w){return w.id>=from&&w.id<=to});
+  var from2=Math.min(S.rFrom,S.rTo),to2=Math.max(S.rFrom,S.rTo);
+  var ws=S.weeks.filter(function(w){return w.id>=from2&&w.id<=to2});
   return{type:"range",label:ws.length?ws[0].s+" → "+ws[ws.length-1].s:"",items:ws,
     labels:ws.map(function(w){return w.l}),csat:ws.map(function(w){return w.csat}),sla:ws.map(function(w){return w.sla}),
     ttr:ws.map(function(w){return w.ttr}),inc:ws.map(function(w){return w.inc}),cls:ws.map(function(w){return w.cls})};
@@ -355,8 +378,8 @@ function getFD(){
 function render(){
   if(!S.loaded)return;var f=getFD();if(!f)return;
   document.getElementById("pbadge").textContent=f.label;
-  document.getElementById("notice-m").style.display=f.type==="month"?"flex":"none";
-  document.getElementById("notice-w").style.display=f.type!=="month"?"flex":"none";
+  document.getElementById("notice-m").style.display=(f.type==="month"||f.type==="month-range")?"flex":"none";
+  document.getElementById("notice-w").style.display=(f.type!=="month"&&f.type!=="month-range")?"flex":"none";
   document.getElementById("lc-sub").textContent=f.label+(f.items.length>1?" · "+f.items.length+" semanas":"");
   document.getElementById("dc-sub").textContent=f.label;
   renderKPIs(f);renderLC();renderLeg();renderGauges(f);renderIC(f);renderDC(f);renderBC();
