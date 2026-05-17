@@ -259,12 +259,6 @@ function isMonthCol(cell){
 function parseCSV(rows){
   const findR=kw=>rows.find(r=>r[0]&&r[0].toLowerCase().includes(kw.toLowerCase()));
 
-  // Find the row that has "Prodon" markers for incoming
-  const incomRow=findR("Incoming");
-  if(!incomRow)throw new Error("Sin fila Incoming");
-  const pCols=incomRow.map((v,i)=>v==="Prodon"?i:null).filter(v=>v!==null);
-  if(!pCols.length)throw new Error("Sin columnas Prodon");
-
   // Key data rows
   const csatRow  = findR("CSAT 94%")||findR("csat consolidado");
   const slaRow   = findR("SLA Att");
@@ -275,14 +269,32 @@ function parseCSV(rows){
 
   // [AR] Prodon row has week labels and month summary labels
   const prodonRow=rows.find(r=>r[0]==="[AR] Prodon");
-  // Date row for week start dates
-  const dateRow=rows.find(r=>r[0]==="Week"&&pCols.some(c=>r[c]&&r[c].trim()!==""));
+  // Date row: find row with dates in dd/mm/yyyy format
+  const dateRow=rows.find(r=>r[0]==="Week"&&r.some(c=>c&&/\d{1,2}\/\d{1,2}\/\d{4}/.test(c)));
+
+  // Find start column: first column in dateRow that has a dd/mm/yyyy date
+  // OR first column where prodonRow has a month name with year
+  let startCol = -1;
+  if(dateRow){
+    startCol = dateRow.findIndex(c=>c&&/\d{1,2}\/\d{1,2}\/\d{4}/.test(c));
+    // Go back one to include the month summary column before the first week
+    if(startCol > 0) startCol--;
+  }
+  // Fallback: find first column in prodonRow that has a month name + year
+  if(startCol < 0 && prodonRow){
+    startCol = prodonRow.findIndex(c=>isMonthCol(c));
+  }
+  if(startCol < 0) throw new Error("No se encontró columna de inicio Prodon");
+
+  // Build pCols from startCol to end
+  const pCols = [];
+  for(let i=startCol; i<(tickRow||csatRow).length; i++) pCols.push(i);
 
   const months=[], weeks=[];
 
   for(const c of pCols){
     const colLabel=(prodonRow?prodonRow[c]||"":"").trim();
-    const dateLabel=(dateRow?dateRow[c]||"":"").trim().replace(/-$/,"");
+    const dateLabel=(dateRow?dateRow[c]||"":"").trim();
 
     if(isMonthCol(colLabel)){
       // This is a monthly summary column
