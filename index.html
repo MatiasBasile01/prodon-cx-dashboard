@@ -10,12 +10,9 @@
   --bg:#f5f4f2;--surface:#fff;--border:#e5e4e0;--border2:#d0cfc9;
   --text:#1a1a18;--text2:#6b6a65;--text3:#9e9d97;
   --purple:#7F77DD;--purple-l:#EEEDFE;--purple-d:#3C3489;
-  --teal:#1D9E75;--teal-l:#E1F5EE;
-  --blue:#378ADD;--blue-l:#E6F1FB;
-  --coral:#D85A30;--coral-l:#FAECE7;
-  --green:#3B6D11;--green-l:#EAF3DE;
-  --red:#A32D2D;--red-l:#FCEBEB;
-  --r:10px;
+  --teal:#1D9E75;--blue:#378ADD;--blue-l:#E6F1FB;
+  --coral:#D85A30;--green:#3B6D11;--green-l:#EAF3DE;
+  --red:#A32D2D;--red-l:#FCEBEB;--r:10px;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 .header{background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 1.5rem .75rem;position:sticky;top:0;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,.04)}
@@ -38,8 +35,7 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
 .kval{font-size:28px;font-weight:600;line-height:1;margin-bottom:2px}
 .kdesc{font-size:11px;color:var(--text3);margin-bottom:8px}
 .kbadge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px}
-.ok{background:var(--green-l);color:var(--green)}
-.ko{background:var(--red-l);color:var(--red)}
+.ok{background:var(--green-l);color:var(--green)}.ko{background:var(--red-l);color:var(--red)}
 .ktrend{font-size:11px;font-weight:500;margin-top:4px}
 .row2{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px}
 @media(max-width:700px){.row2{grid-template-columns:1fr}}
@@ -82,13 +78,10 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
     <span id="ctrl-mensual"><select id="sel-month" onchange="onFC()"></select></span>
     <span id="ctrl-semanal" style="display:none"><select id="sel-week" onchange="onFC()"></select></span>
     <span id="ctrl-rango" style="display:none;align-items:center;gap:6px">
-      <select id="rFrom" onchange="onFC()"></select>
-      <span class="sep">→</span>
-      <select id="rTo" onchange="onFC()"></select>
+      <select id="rFrom" onchange="onFC()"></select><span class="sep">→</span><select id="rTo" onchange="onFC()"></select>
     </span>
   </div>
 </div>
-
 <div class="body">
   <div class="err-box" id="err"></div>
   <div class="loading" id="loading">Cargando datos desde Google Sheets...</div>
@@ -147,192 +140,170 @@ select{padding:4px 10px;font-size:12px;border-radius:20px;border:1px solid var(-
     </div>
   </div>
 </div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-// ── STATE ─────────────────────────────────────────────────────────────────────
-var S = {
-  months:[], weeks:[],
-  view:"mensual", selMonth:"", selWeek:0, rFrom:0, rTo:0,
-  cm:"all", loaded:false
-};
+var S={months:[],weeks:[],view:"mensual",selMonth:"",selWeek:0,rFrom:0,rTo:0,cm:"all",loaded:false};
 
-// ── UTILS ─────────────────────────────────────────────────────────────────────
-function avg(a){var v=a.filter(function(x){return x!=null});return v.length?v.reduce(function(a,b){return a+b},0)/v.length:null}
-function sum(a){return a.filter(function(x){return x!=null}).reduce(function(a,b){return a+b},0)}
-function trnd(a){var v=a.filter(function(x){return x!=null});return v.length>=2?v[v.length-1]-v[v.length-2]:0}
+function myAvg(a){var v=a.filter(function(x){return x!=null});return v.length?v.reduce(function(a,b){return a+b},0)/v.length:null}
+function mySum(a){return a.filter(function(x){return x!=null}).reduce(function(a,b){return a+b},0)}
+function myTrend(a){var v=a.filter(function(x){return x!=null});return v.length>=2?v[v.length-1]-v[v.length-2]:0}
 function pnum(s){
-  if(!s)return null;
-  s=s.trim();
-  if([".","-","–","#VALUE!","#DIV/0!","#REF!",""].indexOf(s)>=0)return null;
+  if(!s)return null;s=s.trim();
+  if(s===""||s==="."||s==="-"||s==="–"||s.indexOf("#")===0)return null;
   var n=parseFloat(s.replace(/\./g,"").replace(",",".").replace("%","").trim());
   return isNaN(n)?null:n;
 }
 function mFull(id){
   var map={ago:"Agosto",sep:"Septiembre",oct:"Octubre",nov:"Noviembre",dic:"Diciembre",
     ene:"Enero",feb:"Febrero",mar:"Marzo",abr:"Abril",may:"Mayo",jun:"Junio",jul:"Julio"};
-  var parts=id.split("-");var p=parts[0];var y=parts[1];
-  return(map[p]||p)+(y?" 20"+y:"");
+  var p=id.split("-");return(map[p[0]]||p[0])+(p[1]?" 20"+p[1]:"");
 }
 function mShort(id){
   var map={ago:"Ago",sep:"Sep",oct:"Oct",nov:"Nov",dic:"Dic",
     ene:"Ene",feb:"Feb",mar:"Mar",abr:"Abr",may:"May",jun:"Jun",jul:"Jul"};
-  var parts=id.split("-");return(map[parts[0]]||parts[0])+(parts[1]?" '"+parts[1]:"");
+  var p=id.split("-");return(map[p[0]]||p[0])+(p[1]?" '"+p[1]:"");
 }
-function toMonthId(s){
-  if(!s)return null;
-  s=s.toLowerCase();
-  var months={agosto:"ago",septiembre:"sep",octubre:"oct",noviembre:"nov",diciembre:"dic",
-    enero:"ene",febrero:"feb",marzo:"mar",abril:"abr",mayo:"may",junio:"jun",julio:"jul"};
-  for(var k in months){
-    if(s.indexOf(k)>=0){
-      var y=s.match(/\d{4}/);
-      return y?months[k]+"-"+y[0].slice(2):months[k];
-    }
-  }
-  return null;
-}
-function isMonthSummary(cell){
+function isMonthCell(cell){
   if(!cell)return false;
-  // Format MM/YYYY e.g. "08/2025"
   return /^\d{2}\/\d{4}$/.test(cell.trim());
 }
-function mesRowToMonthId(cell){
-  // "08/2025" → "ago-25"
+function monthCellToId(cell){
   var map={"01":"ene","02":"feb","03":"mar","04":"abr","05":"may","06":"jun",
     "07":"jul","08":"ago","09":"sep","10":"oct","11":"nov","12":"dic"};
   var m=cell.trim().match(/^(\d{2})\/(\d{4})$/);
   if(!m)return null;
-  return (map[m[1]]||m[1])+"-"+m[2].slice(2);
+  return(map[m[1]]||m[1])+"-"+m[2].slice(2);
 }
 
-// ── LOAD ──────────────────────────────────────────────────────────────────────
 function loadData(){
   Papa.parse("/api/csv",{
-    download:true, skipEmptyLines:true,
+    download:true,skipEmptyLines:true,
     complete:function(res){
-      try{ parseCSV(res.data); }
-      catch(e){
-        showErr("Error parseando CSV: "+e.message);
-        console.error(e);
-      }
+      try{parseCSV(res.data)}
+      catch(e){showErr("Error parseando CSV: "+e.message);console.error(e)}
     },
-    error:function(e){
-      showErr("Error cargando CSV: "+e.message);
-    }
+    error:function(e){showErr("Error cargando CSV: "+(e.message||JSON.stringify(e)))}
   });
 }
 
 function showErr(msg){
   document.getElementById("loading").style.display="none";
-  var eb=document.getElementById("err");
-  eb.style.display="block";
+  var eb=document.getElementById("err");eb.style.display="block";
   eb.innerHTML="<strong>"+msg+"</strong><br><a href='/api/csv' target='_blank'>Ver CSV crudo →</a>";
 }
 
 function parseCSV(rows){
-  // Helper: find row by keyword in first cell
-  function findR(kw){
-    return rows.find(function(r){return r[0]&&r[0].toLowerCase().indexOf(kw.toLowerCase())>=0});
+  // Find rows by exact match on first cell
+  var mesRow=null,equipoRow=null,csatRow=null,slaRow=null,ttrRow=null,tickRow=null,closedRow=null,prodonRow=null,dateRow=null;
+
+  for(var ri=0;ri<rows.length;ri++){
+    var cell=(rows[ri][0]||"").trim();
+    if(cell==="MES") mesRow=rows[ri];
+    else if(cell==="EQUIPO") equipoRow=rows[ri];
+    else if(cell==="[AR] Prodon") prodonRow=rows[ri];
+    else if(cell==="Week"&&!dateRow&&rows[ri].some(function(c){return c&&/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(c)})) dateRow=rows[ri];
+    else if(cell.indexOf("CSAT")>=0&&cell.indexOf("94%")>=0) csatRow=rows[ri];
+    else if(cell.indexOf("SLA Att")>=0||cell.indexOf("SLA att")>=0) slaRow=rows[ri];
+    else if(cell.indexOf("TTR en Target")>=0||cell.indexOf("TTR en target")>=0) ttrRow=rows[ri];
+    else if(cell.indexOf("# Tickets Created")>=0) tickRow=rows[ri];
+    else if(cell.indexOf("# Tickets Closed")>=0) closedRow=rows[ri];
   }
 
-  var csatRow   = findR("CSAT 94%") || findR("csat consolidado");
-  var slaRow    = findR("SLA Att");
-  var ttrRow    = findR("TTR en Target");
-  var tickRow   = findR("# Tickets Created");
-  var closedRow = findR("# Tickets Closed");
-  var incomRow  = rows.find(function(r){return (r[0]||"").trim()==="Incoming"});
-  var prodonRow = rows.find(function(r){return r[0]==="[AR] Prodon"});
-  var dateRow   = rows.find(function(r){return r[0]==="Week" && r.some(function(c){return c&&/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(c)})});
-
-  if(!csatRow)  throw new Error("No se encontró fila CSAT");
-  if(!slaRow)   throw new Error("No se encontró fila SLA");
-  if(!ttrRow)   throw new Error("No se encontró fila TTR");
-  if(!tickRow)  throw new Error("No se encontró fila Tickets Created");
-  if(!incomRow) throw new Error("No se encontró fila Incoming");
-
-  // Find start col: first col where incomRow = "Prodon"
-  var startCol = -1;
-  for(var i=1;i<incomRow.length;i++){
-    if((incomRow[i]||"").trim()==="Prodon"){startCol=i;break;}
+  // Also try CSAT row with different naming
+  if(!csatRow){
+    for(var ri2=0;ri2<rows.length;ri2++){
+      var c2=(rows[ri2][0]||"").trim().toLowerCase();
+      if(c2.indexOf("csat")>=0&&c2.indexOf("consolidado")>=0){csatRow=rows[ri2];break;}
+    }
   }
-  if(startCol<0) throw new Error("No se encontró 'Prodon' en fila Incoming. Valores encontrados: "+incomRow.slice(0,50).join("|"));
-
-  var prodonRow = rows.find(function(r){return r[0]==="[AR] Prodon"});
-  var dateRow   = rows.find(function(r){return r[0]==="Week" && r.some(function(c){return c&&/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(c)})});
-
-  if(!csatRow)  throw new Error("No se encontró fila CSAT");
-  if(!slaRow)   throw new Error("No se encontró fila SLA");
-  if(!ttrRow)   throw new Error("No se encontró fila TTR");
-  if(!tickRow)  throw new Error("No se encontró fila Tickets Created");
-
-  // Collect Prodon columns, stop after 5 consecutive empty
-  var cols=[];
-  var empty=0;
-  var maxLen=Math.max(tickRow.length,csatRow.length,equipoRow.length);
-  for(var c=startCol;c<maxLen;c++){
-    var t=(tickRow[c]||"").trim(), cs=(csatRow[c]||"").trim();
-    if(t===""&&cs===""){empty++;if(empty>=5)break;}
-    else{empty=0;cols.push(c);}
+  // Also try SLA with space prefix
+  if(!slaRow){
+    for(var ri3=0;ri3<rows.length;ri3++){
+      var c3=(rows[ri3][0]||"").trim();
+      if(c3.indexOf("SLA")>=0&&c3.indexOf("Att")>=0){slaRow=rows[ri3];break;}
+    }
   }
-  if(!cols.length) throw new Error("No hay columnas con datos desde col "+startCol);
+  // Also try TTR with space prefix
+  if(!ttrRow){
+    for(var ri4=0;ri4<rows.length;ri4++){
+      var c4=(rows[ri4][0]||"").trim();
+      if(c4.indexOf("TTR")>=0&&c4.indexOf("Target")>=0){ttrRow=rows[ri4];break;}
+    }
+  }
 
-  var months=[], weeks=[];
-  for(var ci=0;ci<cols.length;ci++){
-    var c=cols[ci];
-    var mesCell=(mesRow?mesRow[c]||"":"").trim();
-    var colLabel=(prodonRow?prodonRow[c]||"":"").trim();
-    var dateLabel=(dateRow?dateRow[c]||"":"").trim();
+  if(!equipoRow) throw new Error("No se encontró fila EQUIPO. Filas disponibles: "+rows.slice(0,20).map(function(r){return'"'+(r[0]||"").trim()+'"'}).join(", "));
+  if(!csatRow) throw new Error("No se encontró fila CSAT");
+  if(!slaRow) throw new Error("No se encontró fila SLA");
+  if(!ttrRow) throw new Error("No se encontró fila TTR");
+  if(!tickRow) throw new Error("No se encontró fila Tickets Created");
 
-    if(isMonthSummary(mesCell)){
-      // Monthly summary column
-      var mid=mesRowToMonthId(mesCell);
+  // Find first Prodon column
+  var startCol=-1;
+  for(var i=1;i<equipoRow.length;i++){
+    if((equipoRow[i]||"").trim()==="Prodon"){startCol=i;break;}
+  }
+  if(startCol<0) throw new Error("No se encontró 'Prodon' en fila EQUIPO");
+
+  // Collect columns with data from startCol
+  var cols=[],emptyRun=0;
+  var maxC=Math.max(tickRow.length,csatRow.length,equipoRow.length);
+  for(var ci=startCol;ci<maxC;ci++){
+    var hasT=(tickRow[ci]||"").trim()!=="";
+    var hasC=(csatRow[ci]||"").trim()!=="";
+    if(!hasT&&!hasC){emptyRun++;if(emptyRun>=5)break;}
+    else{emptyRun=0;cols.push(ci);}
+  }
+  if(!cols.length) throw new Error("Sin columnas de datos desde col "+startCol);
+
+  // Classify into months and weeks
+  var months=[],weeks=[];
+  for(var j=0;j<cols.length;j++){
+    var col=cols[j];
+    var mesCell=mesRow?(mesRow[col]||"").trim():"";
+    var label=prodonRow?(prodonRow[col]||"").trim():"";
+    var dateVal=dateRow?(dateRow[col]||"").trim():"";
+
+    if(isMonthCell(mesCell)){
+      var mid=monthCellToId(mesCell);
       if(!mid)continue;
       months.push({
-        id:mid, label:mFull(mid),
-        csat:pnum(csatRow[c]), sla:pnum(slaRow[c]), ttr:pnum(ttrRow[c]),
-        inc:pnum(tickRow[c]), cls:closedRow?pnum(closedRow[c]):null
+        id:mid,label:mFull(mid),
+        csat:pnum(csatRow[col]),sla:pnum(slaRow[col]),ttr:pnum(ttrRow[col]),
+        inc:pnum(tickRow[col]),cls:closedRow?pnum(closedRow[col]):null
       });
     } else {
-      // Weekly column
-      // Find parent month by looking back in mesRow
       var parentMid="?";
       if(mesRow){
-        for(var mc=c;mc>=0;mc--){
-          var mv=(mesRow[mc]||"").trim();
-          if(isMonthSummary(mv)){parentMid=mesRowToMonthId(mv)||"?";break;}
+        for(var back=col;back>=0;back--){
+          var mv=(mesRow[back]||"").trim();
+          if(isMonthCell(mv)){parentMid=monthCellToId(mv)||"?";break;}
         }
       }
       weeks.push({
         id:weeks.length,
-        l:colLabel||("W"+(weeks.length+1)),
-        s:dateLabel||("col"+c),
+        l:label||("W"+(weeks.length+1)),
+        s:dateVal||("col"+col),
         m:parentMid,
-        csat:pnum(csatRow[c]), sla:pnum(slaRow[c]), ttr:pnum(ttrRow[c]),
-        inc:pnum(tickRow[c]), cls:closedRow?pnum(closedRow[c]):null
+        csat:pnum(csatRow[col]),sla:pnum(slaRow[col]),ttr:pnum(ttrRow[col]),
+        inc:pnum(tickRow[col]),cls:closedRow?pnum(closedRow[col]):null
       });
     }
   }
 
-  if(!months.length&&!weeks.length) throw new Error("No se encontraron datos en columnas Prodon");
+  if(!months.length&&!weeks.length) throw new Error("Sin datos en columnas Prodon");
 
-  S.months=months;
-  S.weeks=weeks;
+  S.months=months;S.weeks=weeks;
   S.selMonth=months.length?months[months.length-1].id:"";
   S.selWeek=weeks.length?weeks[weeks.length-1].id:0;
-  S.rFrom=0;
-  S.rTo=weeks.length?weeks[weeks.length-1].id:0;
+  S.rFrom=0;S.rTo=weeks.length?weeks[weeks.length-1].id:0;
   boot();
 }
 
 function boot(){
   document.getElementById("loading").style.display="none";
   document.getElementById("dash").style.display="block";
-  S.loaded=true;
-  buildSelectors();
-  render();
+  S.loaded=true;buildSelectors();render();
 }
-
 function buildSelectors(){
   var sm=document.getElementById("sel-month");
   sm.innerHTML=S.months.map(function(m){return'<option value="'+m.id+'">'+m.label+'</option>'}).join("");
@@ -341,18 +312,14 @@ function buildSelectors(){
   sw.innerHTML=S.weeks.map(function(w){return'<option value="'+w.id+'">'+w.l+' · '+w.s+'</option>'}).join("");
   sw.value=S.selWeek;
   var rf=document.getElementById("rFrom"),rt=document.getElementById("rTo");
-  var wopts=S.weeks.map(function(w){return'<option value="'+w.id+'">'+w.l+' · '+w.s+'</option>'}).join("");
-  rf.innerHTML=wopts; rt.innerHTML=wopts;
-  rf.value=S.rFrom; rt.value=S.rTo;
+  var wo=S.weeks.map(function(w){return'<option value="'+w.id+'">'+w.l+' · '+w.s+'</option>'}).join("");
+  rf.innerHTML=wo;rt.innerHTML=wo;rf.value=S.rFrom;rt.value=S.rTo;
 }
-
-// ── CONTROLS ──────────────────────────────────────────────────────────────────
 function setView(v){
   S.view=v;
   ["mensual","semanal","rango"].forEach(function(x){
     document.getElementById("b"+x[0]).classList.toggle("on",v===x);
-    var el=document.getElementById("ctrl-"+x);
-    el.style.display=v===x?(x==="rango"?"flex":""):"none";
+    document.getElementById("ctrl-"+x).style.display=v===x?(x==="rango"?"flex":""):"none";
   });
   render();
 }
@@ -365,103 +332,74 @@ function onFC(){
 }
 function setCM(m){
   S.cm=m;
-  document.querySelectorAll(".chtab").forEach(function(b,i){
-    b.classList.toggle("on",["all","csat","sla","ttr"][i]===m);
-  });
-  renderLC(); renderLeg();
+  document.querySelectorAll(".chtab").forEach(function(b,i){b.classList.toggle("on",["all","csat","sla","ttr"][i]===m)});
+  renderLC();renderLeg();
 }
-
-// ── FILTERED DATA ─────────────────────────────────────────────────────────────
 function getFD(){
   if(S.view==="mensual"){
     var mo=S.months.find(function(m){return m.id===S.selMonth});
     if(!mo)return null;
-    return{type:"month",label:mo.label,items:[mo],
-      labels:[mo.label],csat:[mo.csat],sla:[mo.sla],ttr:[mo.ttr],inc:[mo.inc],cls:[mo.cls]};
+    return{type:"month",label:mo.label,items:[mo],labels:[mo.label],csat:[mo.csat],sla:[mo.sla],ttr:[mo.ttr],inc:[mo.inc],cls:[mo.cls]};
   }
   if(S.view==="semanal"){
     var w=S.weeks.find(function(x){return x.id===S.selWeek});
     if(!w)return null;
-    return{type:"week",label:w.l+" ("+w.s+")",items:[w],
-      labels:[w.s],csat:[w.csat],sla:[w.sla],ttr:[w.ttr],inc:[w.inc],cls:[w.cls]};
+    return{type:"week",label:w.l+" ("+w.s+")",items:[w],labels:[w.s],csat:[w.csat],sla:[w.sla],ttr:[w.ttr],inc:[w.inc],cls:[w.cls]};
   }
   var from=Math.min(S.rFrom,S.rTo),to=Math.max(S.rFrom,S.rTo);
   var ws=S.weeks.filter(function(w){return w.id>=from&&w.id<=to});
   return{type:"range",label:ws.length?ws[0].s+" → "+ws[ws.length-1].s:"",items:ws,
-    labels:ws.map(function(w){return w.l}),
-    csat:ws.map(function(w){return w.csat}),sla:ws.map(function(w){return w.sla}),
-    ttr:ws.map(function(w){return w.ttr}),inc:ws.map(function(w){return w.inc}),
-    cls:ws.map(function(w){return w.cls})};
+    labels:ws.map(function(w){return w.l}),csat:ws.map(function(w){return w.csat}),sla:ws.map(function(w){return w.sla}),
+    ttr:ws.map(function(w){return w.ttr}),inc:ws.map(function(w){return w.inc}),cls:ws.map(function(w){return w.cls})};
 }
-
-// ── RENDER ────────────────────────────────────────────────────────────────────
 function render(){
-  if(!S.loaded)return;
-  var f=getFD(); if(!f)return;
+  if(!S.loaded)return;var f=getFD();if(!f)return;
   document.getElementById("pbadge").textContent=f.label;
   document.getElementById("notice-m").style.display=f.type==="month"?"flex":"none";
   document.getElementById("notice-w").style.display=f.type!=="month"?"flex":"none";
   document.getElementById("lc-sub").textContent=f.label+(f.items.length>1?" · "+f.items.length+" semanas":"");
   document.getElementById("dc-sub").textContent=f.label;
-  renderKPIs(f); renderLC(); renderLeg(); renderGauges(f); renderIC(f); renderDC(f); renderBC();
+  renderKPIs(f);renderLC();renderLeg();renderGauges(f);renderIC(f);renderDC(f);renderBC();
 }
-
 function sparkSVG(vals,color){
   var v=vals.map(function(x,i){return{i:i,x:x}}).filter(function(p){return p.x!=null});
   if(v.length<2)return"";
-  var mn=Math.min.apply(null,v.map(function(p){return p.x}));
-  var mx=Math.max.apply(null,v.map(function(p){return p.x}));
-  var rng=mx-mn||1;
+  var mn=Math.min.apply(null,v.map(function(p){return p.x})),mx=Math.max.apply(null,v.map(function(p){return p.x})),rng=mx-mn||1;
   var W=110,H=28;
-  function xs(i){return(i/(vals.length-1))*(W-4)+2}
-  function ys(x){return H-2-((x-mn)/rng)*(H-4)}
-  var pts=v.map(function(p){return xs(p.i).toFixed(1)+","+ys(p.x).toFixed(1)}).join(" ");
-  var last=v[v.length-1];
-  return'<svg width="'+W+'" height="'+H+'" style="display:block"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.5" stroke-linejoin="round" opacity="0.7"/><circle cx="'+xs(last.i).toFixed(1)+'" cy="'+ys(last.x).toFixed(1)+'" r="2.5" fill="'+color+'"/></svg>';
+  var pts=v.map(function(p){var xi=(p.i/(vals.length-1))*(W-4)+2;var yi=H-2-((p.x-mn)/rng)*(H-4);return xi.toFixed(1)+","+yi.toFixed(1)}).join(" ");
+  var last=v[v.length-1];var lx=(last.i/(vals.length-1))*(W-4)+2;var ly=H-2-((last.x-mn)/rng)*(H-4);
+  return'<svg width="'+W+'" height="'+H+'" style="display:block"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.5" stroke-linejoin="round" opacity="0.7"/><circle cx="'+lx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="2.5" fill="'+color+'"/></svg>';
 }
-
 function renderKPIs(f){
   var ks=[
     {k:"csat",l:"CSAT",d:"Satisfacción del cliente",t:94,c:"var(--purple)"},
     {k:"sla",l:"SLA Attainment",d:"Cumplimiento de SLA",t:90,c:"var(--teal)"},
     {k:"ttr",l:"TTR <48h",d:"Resueltos en tiempo",t:90,c:"var(--blue)"},
-    {k:"inc",l:"Creados",d:"Tickets del período",t:null,c:"var(--coral)"},
+    {k:"inc",l:"Creados",d:"Tickets del período",t:null,c:"var(--coral)"}
   ];
   document.getElementById("kg").innerHTML=ks.map(function(k){
-    var v=k.k==="inc"?sum(f.inc):avg(f[k.k]);
+    var v=k.k==="inc"?mySum(f.inc):myAvg(f[k.k]);
     var ok=k.t!=null&&v!=null?v>=k.t:null;
-    var disp=k.k==="inc"?(v!=null?Math.round(v).toLocaleString("es-AR"):"—"):(v!=null?v.toFixed(1)+"%":"—");
+    var disp=k.k==="inc"?(v?Math.round(v).toLocaleString("es-AR"):"—"):(v!=null?v.toFixed(1)+"%":"—");
     var vc=ok===null?k.c:ok?"var(--green)":"var(--red)";
-    var sparkData=S.weeks.map(function(w){return k.k==="inc"?w.inc:w[k.k]});
-    var tr=trnd(sparkData);
-    var tc=tr>0?"var(--green)":tr<0?"var(--red)":"var(--text3)";
+    var sd=S.weeks.map(function(w){return k.k==="inc"?w.inc:w[k.k]});
+    var tr=myTrend(sd);var tc=tr>0?"var(--green)":tr<0?"var(--red)":"var(--text3)";
     var bh=ok!==null?'<span class="kbadge '+(ok?"ok":"ko")+'">'+(ok?"En target":"Bajo target")+"</span>":"";
-    return'<div class="kcard" style="border-top-color:'+k.c+'"><div class="ktop"><span class="klbl">'+k.l+"</span>"+bh+'</div><div class="kval" style="color:'+vc+'">'+disp+'</div><div class="kdesc">'+k.d+"</div><div>"+sparkSVG(sparkData,k.c)+'</div><div class="ktrend" style="color:'+tc+'">'+(tr>0?"▲":tr<0?"▼":"–")+" "+Math.abs(tr).toFixed(k.k==="inc"?0:1)+(k.k!=="inc"?"%":"")+" vs sem. ant.</div></div>";
+    return'<div class="kcard" style="border-top-color:'+k.c+'"><div class="ktop"><span class="klbl">'+k.l+"</span>"+bh+'</div><div class="kval" style="color:'+vc+'">'+disp+'</div><div class="kdesc">'+k.d+"</div><div>"+sparkSVG(sd,k.c)+'</div><div class="ktrend" style="color:'+tc+'">'+(tr>0?"▲":tr<0?"▼":"–")+" "+Math.abs(tr).toFixed(k.k==="inc"?0:1)+(k.k!=="inc"?"%":"")+" vs sem. ant.</div></div>";
   }).join("");
 }
-
 function renderLeg(){
   var m=S.cm;
-  var its=m==="all"
-    ?[{c:"var(--purple)",l:"CSAT"},{c:"var(--teal)",l:"SLA"},{c:"var(--blue)",l:"TTR"}]
-    :[{c:m==="csat"?"var(--purple)":m==="sla"?"var(--teal)":"var(--blue)",l:m.toUpperCase()}];
-  its.push({c:"#aaa",l:"Target",dash:true});
-  document.getElementById("leg").innerHTML=its.map(function(x){
-    return'<span class="li"><span class="ld" style="'+(x.dash?"border:1px dashed "+x.c+";background:transparent":"background:"+x.c)+'"></span>'+x.l+"</span>";
-  }).join("");
+  var its=m==="all"?[{c:"var(--purple)",l:"CSAT"},{c:"var(--teal)",l:"SLA"},{c:"var(--blue)",l:"TTR"}]:[{c:m==="csat"?"var(--purple)":m==="sla"?"var(--teal)":"var(--blue)",l:m.toUpperCase()}];
+  its.push({c:"#aaa",l:"Target",d:true});
+  document.getElementById("leg").innerHTML=its.map(function(x){return'<span class="li"><span class="ld" style="'+(x.d?"border:1px dashed "+x.c+";background:transparent":"background:"+x.c)+'"></span>'+x.l+"</span>"}).join("");
 }
-
 function renderLC(){
-  var f=getFD(),m=S.cm; if(!f)return;
-  var ds=m==="all"
-    ?[{v:f.csat,c:"#7F77DD"},{v:f.sla,c:"#1D9E75"},{v:f.ttr,c:"#378ADD"}]
-    :m==="csat"?[{v:f.csat,c:"#7F77DD"}]
-    :m==="sla"?[{v:f.sla,c:"#1D9E75"}]
-    :[{v:f.ttr,c:"#378ADD"}];
-  var all=ds.reduce(function(a,d){return a.concat(d.v.filter(function(x){return x!=null}));},[]);
+  var f=getFD(),m=S.cm;if(!f)return;
+  var ds=m==="all"?[{v:f.csat,c:"#7F77DD"},{v:f.sla,c:"#1D9E75"},{v:f.ttr,c:"#378ADD"}]:m==="csat"?[{v:f.csat,c:"#7F77DD"}]:m==="sla"?[{v:f.sla,c:"#1D9E75"}]:[{v:f.ttr,c:"#378ADD"}];
+  var all=[];ds.forEach(function(d){d.v.forEach(function(x){if(x!=null)all.push(x)})});
   if(!all.length){document.getElementById("lc").innerHTML="";return;}
-  var mn=Math.floor(Math.min.apply(null,all.concat([90]))*0.95);
-  var mx=Math.ceil(Math.max.apply(null,all.concat([m==="csat"?94:90]))*1.02);
+  var mn=Math.floor(Math.min.apply(null,all.concat([90]))*0.95),mx=Math.ceil(Math.max.apply(null,all.concat([m==="csat"?94:90]))*1.02);
   var W=600,H=180,pl=34,pr=8,pt=8,pb=26,iW=W-pl-pr,iH=H-pt-pb;
   var lb=f.labels;
   function xs(i){return(i/(Math.max(lb.length-1,1)))*iW}
@@ -472,9 +410,8 @@ function renderLC(){
   var tgts=[90].concat(m==="csat"?[94]:[]);
   tgts.forEach(function(t){svg+='<line x1="'+pl+'" y1="'+(pt+ys(t))+'" x2="'+(pl+iW)+'" y2="'+(pt+ys(t))+'" stroke="#aaa" stroke-width="1" stroke-dasharray="5,3" opacity="0.6"/>';});
   ds.forEach(function(d){
-    var vp=d.v.map(function(x,i){return{i:i,x:x}}).filter(function(p){return p.x!=null});
-    if(!vp.length)return;
-    if(lb.length===1){svg+='<circle cx="'+(pl+xs(0))+'" cy="'+(pt+ys(vp[0].x))+'" r="5" fill="'+d.c+'" opacity="0.85"/><text x="'+(pl+xs(0))+'" y="'+(pt+ys(vp[0].x)-10)+'" text-anchor="middle" font-size="11" font-weight="600" fill="'+d.c+'">'+vp[0].x.toFixed(1)+'%</text>';return;}
+    var vp=[];d.v.forEach(function(x,i){if(x!=null)vp.push({i:i,x:x})});if(!vp.length)return;
+    if(lb.length===1){svg+='<circle cx="'+(pl+xs(0))+'" cy="'+(pt+ys(vp[0].x))+'" r="5" fill="'+d.c+'"/><text x="'+(pl+xs(0))+'" y="'+(pt+ys(vp[0].x)-10)+'" text-anchor="middle" font-size="11" font-weight="600" fill="'+d.c+'">'+vp[0].x.toFixed(1)+'%</text>';return;}
     var ar="M"+vp.map(function(p){return(pl+xs(p.i))+","+(pt+ys(p.x))}).join(" L")+" L"+(pl+xs(vp[vp.length-1].i))+","+(pt+iH)+" L"+(pl+xs(vp[0].i))+","+(pt+iH)+" Z";
     var ln=vp.map(function(p,i){return(i===0?"M":"L")+(pl+xs(p.i))+","+(pt+ys(p.x))}).join(" ");
     svg+='<path d="'+ar+'" fill="'+d.c+'" opacity="0.06"/><path d="'+ln+'" fill="none" stroke="'+d.c+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
@@ -482,73 +419,63 @@ function renderLC(){
   });
   document.getElementById("lc").innerHTML=svg;
 }
-
 function gaugeSVG(val,tgt){
   var sz=84,r=32,cx=sz/2,cy=sz/2+4;
   if(val==null)return'<svg width="'+sz+'" height="'+(sz/2+18)+'"><text x="'+cx+'" y="'+cy+'" text-anchor="middle" font-size="13" fill="#9e9d97">—</text></svg>';
   var pct=Math.min(val/100,1),tp=tgt/100;
-  function arc(p,r){var a=Math.PI*(1-p);return(cx+r*Math.cos(Math.PI))+","+cy+" A"+r+","+r+" 0 0,1 "+(cx+r*Math.cos(a)).toFixed(2)+","+(cy-r*Math.sin(a)).toFixed(2)}
+  function arc(p){var a=Math.PI*(1-p);return(cx+r*Math.cos(Math.PI))+","+cy+" A"+r+","+r+" 0 0,1 "+(cx+r*Math.cos(a)).toFixed(2)+","+(cy-r*Math.sin(a)).toFixed(2)}
   var fill=val>=tgt?"#1D9E75":val>=tgt-5?"#BA7517":"#A32D2D";
   var tx=(cx+(r-10)*Math.cos(Math.PI*(1-tp))).toFixed(2),ty=(cy-(r-10)*Math.sin(Math.PI*(1-tp))).toFixed(2);
-  return'<svg width="'+sz+'" height="'+(sz/2+18)+'" style="display:block;margin:0 auto"><path d="M'+arc(1,r)+'" fill="none" stroke="#e5e4e0" stroke-width="6" stroke-linecap="round"/><path d="M'+arc(pct,r)+'" fill="none" stroke="'+fill+'" stroke-width="6" stroke-linecap="round"/><line x1="'+cx+'" y1="'+cy+'" x2="'+tx+'" y2="'+ty+'" stroke="#aaa" stroke-width="1.5" stroke-dasharray="2,2"/><text x="'+cx+'" y="'+(cy+2)+'" text-anchor="middle" font-size="13" font-weight="600" fill="'+fill+'">'+val.toFixed(1)+'%</text><text x="'+cx+'" y="'+(cy+14)+'" text-anchor="middle" font-size="9" fill="#9e9d97">target '+tgt+'%</text></svg>';
+  return'<svg width="'+sz+'" height="'+(sz/2+18)+'" style="display:block;margin:0 auto"><path d="M'+arc(1)+'" fill="none" stroke="#e5e4e0" stroke-width="6" stroke-linecap="round"/><path d="M'+arc(pct)+'" fill="none" stroke="'+fill+'" stroke-width="6" stroke-linecap="round"/><line x1="'+cx+'" y1="'+cy+'" x2="'+tx+'" y2="'+ty+'" stroke="#aaa" stroke-width="1.5" stroke-dasharray="2,2"/><text x="'+cx+'" y="'+(cy+2)+'" text-anchor="middle" font-size="13" font-weight="600" fill="'+fill+'">'+val.toFixed(1)+'%</text><text x="'+cx+'" y="'+(cy+14)+'" text-anchor="middle" font-size="9" fill="#9e9d97">target '+tgt+'%</text></svg>';
 }
-
 function renderGauges(f){
-  document.getElementById("gg").innerHTML=[
-    {k:"csat",l:"CSAT",t:94},{k:"sla",l:"SLA",t:90},{k:"ttr",l:"TTR",t:90}
-  ].map(function(k){return'<div class="gi"><div class="gl">'+k.l+"</div>"+gaugeSVG(avg(f[k.k]),k.t)+"</div>"}).join("");
+  document.getElementById("gg").innerHTML=[{k:"csat",l:"CSAT",t:94},{k:"sla",l:"SLA",t:90},{k:"ttr",l:"TTR",t:90}].map(function(k){return'<div class="gi"><div class="gl">'+k.l+"</div>"+gaugeSVG(myAvg(f[k.k]),k.t)+"</div>"}).join("");
 }
-
 function renderIC(f){
-  var sc=sum(f.inc),scl=sum(f.cls),diff=sc-scl;
-  var dc=diff<=0?"var(--green)":"var(--red)";
+  var sc=mySum(f.inc),scl=mySum(f.cls),diff=sc-scl,dc=diff<=0?"var(--green)":"var(--red)";
   document.getElementById("ic").innerHTML=
     '<div class="ichip" style="border-left:3px solid var(--coral)"><div class="icl">Creados</div><div class="icv">'+(sc>0?sc.toLocaleString("es-AR"):"—")+'</div></div>'+
     '<div class="ichip" style="border-left:3px solid var(--teal)"><div class="icl">Cerrados</div><div class="icv">'+(scl>0?scl.toLocaleString("es-AR"):"—")+'</div></div>'+
     '<div class="ichip" style="border-left:3px solid '+dc+'"><div class="icl">Balance</div><div class="icv" style="color:'+dc+'">'+(sc>0?(diff>0?"+":"")+diff.toLocaleString("es-AR"):"—")+'</div></div>';
 }
-
 function renderDC(f){
   var inc=f.inc,cls=f.cls,lb=f.labels;
-  var allV=inc.concat(cls).filter(function(x){return x!=null});
+  var allV=[];inc.forEach(function(x){if(x!=null)allV.push(x)});cls.forEach(function(x){if(x!=null)allV.push(x)});
   if(!allV.length)return;
   var mx=Math.max.apply(null,allV)*1.12;
   var W=600,H=150,pl=44,pr=8,pt=8,pb=28,iW=W-pl-pr,iH=H-pt-pb;
-  var bPair=Math.max(6,(iW/Math.max(lb.length,1))-4),bW=Math.floor((bPair-2)/2);
+  var bP=Math.max(6,(iW/Math.max(lb.length,1))-4),bW=Math.floor((bP-2)/2);
   var svg="";
   [0,.5,1].forEach(function(t){var v=mx*t,y=iH*(1-t);svg+='<line x1="'+pl+'" y1="'+(pt+y)+'" x2="'+(pl+iW)+'" y2="'+(pt+y)+'" stroke="#e5e4e0" stroke-width="0.5"/><text x="'+(pl-4)+'" y="'+(pt+y+4)+'" text-anchor="end" font-size="9" fill="#9e9d97">'+Math.round(v).toLocaleString("es-AR")+'</text>';});
   lb.forEach(function(l,i){
-    var sx=pl+(i/Math.max(lb.length,1))*iW+(iW/Math.max(lb.length,1)-bPair)/2;
-    var vi=inc[i],vc=cls[i];
-    if(vi!=null){var h=(vi/mx)*iH;svg+='<rect x="'+sx.toFixed(1)+'" y="'+(pt+iH-h).toFixed(1)+'" width="'+bW+'" height="'+h.toFixed(1)+'" fill="#D85A30" rx="1.5" opacity="0.85"/>';}
-    if(vc!=null){var h2=(vc/mx)*iH;svg+='<rect x="'+(sx+bW+2).toFixed(1)+'" y="'+(pt+iH-h2).toFixed(1)+'" width="'+bW+'" height="'+h2.toFixed(1)+'" fill="#1D9E75" rx="1.5" opacity="0.85"/>';}
-    if(lb.length<=1||i%(Math.ceil(lb.length/7))===0)svg+='<text x="'+(sx+bPair/2).toFixed(1)+'" y="'+(pt+iH+16)+'" text-anchor="middle" font-size="9" fill="#9e9d97">'+l+'</text>';
+    var sx=pl+(i/Math.max(lb.length,1))*iW+(iW/Math.max(lb.length,1)-bP)/2;
+    if(inc[i]!=null){var h=(inc[i]/mx)*iH;svg+='<rect x="'+sx.toFixed(1)+'" y="'+(pt+iH-h).toFixed(1)+'" width="'+bW+'" height="'+h.toFixed(1)+'" fill="#D85A30" rx="1.5" opacity="0.85"/>';}
+    if(cls[i]!=null){var h2=(cls[i]/mx)*iH;svg+='<rect x="'+(sx+bW+2).toFixed(1)+'" y="'+(pt+iH-h2).toFixed(1)+'" width="'+bW+'" height="'+h2.toFixed(1)+'" fill="#1D9E75" rx="1.5" opacity="0.85"/>';}
+    if(lb.length<=1||i%(Math.ceil(lb.length/7))===0)svg+='<text x="'+(sx+bP/2).toFixed(1)+'" y="'+(pt+iH+16)+'" text-anchor="middle" font-size="9" fill="#9e9d97">'+l+'</text>';
   });
   document.getElementById("dc").innerHTML=svg;
-  var tc=sum(inc),tcl=sum(cls),tot=tc+tcl;
+  var tc=mySum(inc),tcl=mySum(cls),tot=tc+tcl;
   if(tot>0){
     document.getElementById("bf-c").style.width=(tc/tot*100)+"%";
     document.getElementById("bf-cl").style.width=(tcl/tot*100)+"%";
-    var diff=tc-tcl;
-    document.getElementById("bal-net").textContent=(diff>0?"+":"")+diff.toLocaleString("es-AR")+" neto";
-    document.getElementById("bal-net").style.color=diff<=0?"var(--green)":"var(--red)";
+    var d=tc-tcl;
+    document.getElementById("bal-net").textContent=(d>0?"+":"")+d.toLocaleString("es-AR")+" neto";
+    document.getElementById("bal-net").style.color=d<=0?"var(--green)":"var(--red)";
     document.getElementById("bal-c-n").textContent=tc.toLocaleString("es-AR");
     document.getElementById("bal-cl-n").textContent=tcl.toLocaleString("es-AR");
   }
 }
-
 function renderBC(){
-  var ws=S.weeks;
-  if(!ws.length)return;
-  var allV=ws.map(function(w){return w.inc}).concat(ws.map(function(w){return w.cls})).filter(function(x){return x!=null});
+  var ws=S.weeks;if(!ws.length)return;
+  var allV=[];ws.forEach(function(w){if(w.inc!=null)allV.push(w.inc);if(w.cls!=null)allV.push(w.cls)});
   if(!allV.length)return;
   var mx=Math.max.apply(null,allV)*1.1;
   var W=600,H=130,pl=44,pr=8,pt=8,pb=26,iW=W-pl-pr,iH=H-pt-pb;
-  var bPair=Math.max(4,(iW/ws.length)-2),bW=Math.floor((bPair-1)/2);
+  var bP=Math.max(4,(iW/ws.length)-2),bW=Math.floor((bP-1)/2);
   var svg="",lastM="";
   [0,.5,1].forEach(function(t){var v=mx*t,y=iH*(1-t);svg+='<line x1="'+pl+'" y1="'+(pt+y)+'" x2="'+(pl+iW)+'" y2="'+(pt+y)+'" stroke="#e5e4e0" stroke-width="0.5"/><text x="'+(pl-4)+'" y="'+(pt+y+4)+'" text-anchor="end" font-size="9" fill="#9e9d97">'+Math.round(v).toLocaleString("es-AR")+'</text>';});
   ws.forEach(function(w,i){
-    var x=pl+(i/ws.length)*iW+(iW/ws.length-bPair)/2;
+    var x=pl+(i/ws.length)*iW+(iW/ws.length-bP)/2;
     if(w.inc!=null){var h=(w.inc/mx)*iH;svg+='<rect x="'+x.toFixed(1)+'" y="'+(pt+iH-h).toFixed(1)+'" width="'+bW+'" height="'+h.toFixed(1)+'" fill="#D85A30" rx="1" opacity="0.8"/>';}
     if(w.cls!=null){var h2=(w.cls/mx)*iH;svg+='<rect x="'+(x+bW+1).toFixed(1)+'" y="'+(pt+iH-h2).toFixed(1)+'" width="'+bW+'" height="'+h2.toFixed(1)+'" fill="#1D9E75" rx="1" opacity="0.8"/>';}
     if(w.m!==lastM){
