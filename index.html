@@ -336,28 +336,10 @@ select option{color:var(--text);background:var(--surface)}
       <!-- RIGHT COLUMN -->
       <div>
 
-        <!-- DSAT from Sheet -->
-        <div class="card w-section" style="margin-bottom:12px">
-          <span class="w-label">DSATs — BAD CSAT</span>
-          <div class="csub" style="margin-bottom:8px">DSATs de la semana seleccionada · se filtra por columna Fecha</div>
-          <div id="dsat-week-range" style="font-size:11px;color:var(--primary);font-weight:600;margin-bottom:6px;display:none"></div>
-          <div id="dsat-status" style="font-size:12px;color:var(--text3)">⏳ Esperando carga del dashboard...</div>
-          <div class="dsat-preview" id="dsat-preview"></div>
-        </div>
-
-        <!-- Semana selector -->
-        <div class="card w-section" style="margin-bottom:12px">
-          <span class="w-label">Semana analizada</span>
-          <div class="csub" style="margin-bottom:8px">Seleccioná la semana del dashboard o ingresá el rango</div>
-          <select id="w-week-sel" style="width:100%;padding:8px 12px;font-size:13px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--surface);color:var(--text);outline:none;cursor:pointer" onchange="onWeekSel()">
-            <option value="">— Seleccionar semana —</option>
-          </select>
-        </div>
-
-        <!-- Team filter -->
+        <!-- Team filter — PRIMERO -->
         <div class="card w-section" style="margin-bottom:12px">
           <span class="w-label">Equipos</span>
-          <div class="csub" style="margin-bottom:8px">Filtrá los DSATs por equipo · columna Prev_Group</div>
+          <div class="csub" style="margin-bottom:8px">Seleccioná el equipo antes de comenzar el análisis</div>
           <div id="team-dropdown-wrap" style="position:relative">
             <button id="team-dropdown-btn" onclick="toggleTeamDropdown()" style="width:100%;padding:8px 12px;font-size:13px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between">
               <span id="team-btn-label">Todos los equipos</span>
@@ -371,6 +353,24 @@ select option{color:var(--text);background:var(--surface)}
               <div id="team-checkboxes" style="padding:4px 0"></div>
             </div>
           </div>
+        </div>
+
+        <!-- Semana selector -->
+        <div class="card w-section" style="margin-bottom:12px">
+          <span class="w-label">Semana analizada</span>
+          <div class="csub" style="margin-bottom:8px">Seleccioná la semana del dashboard o ingresá el rango</div>
+          <select id="w-week-sel" style="width:100%;padding:8px 12px;font-size:13px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--surface);color:var(--text);outline:none;cursor:pointer" onchange="onWeekSel()">
+            <option value="">— Seleccionar semana —</option>
+          </select>
+        </div>
+
+        <!-- DSAT from Sheet -->
+        <div class="card w-section" style="margin-bottom:12px">
+          <span class="w-label">DSATs — BAD CSAT</span>
+          <div class="csub" style="margin-bottom:8px">DSATs de la semana seleccionada · se filtra por columna Fecha</div>
+          <div id="dsat-week-range" style="font-size:11px;color:var(--primary);font-weight:600;margin-bottom:6px;display:none"></div>
+          <div id="dsat-status" style="font-size:12px;color:var(--text3)">⏳ Esperando carga del dashboard...</div>
+          <div class="dsat-preview" id="dsat-preview"></div>
         </div>
 
         <!-- Context -->
