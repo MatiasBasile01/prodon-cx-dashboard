@@ -159,6 +159,10 @@ select option{color:var(--text);background:var(--surface)}
 /* Section label */
 .w-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;display:block}
 .w-section{margin-bottom:16px}
+
+/* Clear file button */
+.uz-clear{display:none;margin-top:8px;width:100%;padding:5px;font-size:11px;font-weight:600;border-radius:var(--r-sm);border:1px solid var(--red-l);background:var(--red-l);color:var(--red);cursor:pointer;transition:all .15s}
+.uz-clear:hover{background:#fecaca;border-color:#fca5a5}
 </style>
 </head>
 <body>
@@ -295,6 +299,7 @@ select option{color:var(--text);background:var(--surface)}
             <div class="uz-sub">.csv · .tsv · .txt</div>
             <div class="uz-file" id="uz-topics-name"></div>
           </div>
+          <button class="uz-clear" id="uz-topics-clear" onclick="clearFile('topics')">🗑 Borrar archivo</button>
         </div>
 
         <!-- Heatmap CSV -->
@@ -308,6 +313,7 @@ select option{color:var(--text);background:var(--surface)}
             <div class="uz-sub">.csv · .tsv · .txt</div>
             <div class="uz-file" id="uz-heatmap-name"></div>
           </div>
+          <button class="uz-clear" id="uz-heatmap-clear" onclick="clearFile('heatmap')">🗑 Borrar archivo</button>
         </div>
 
         <!-- Extra CSV -->
@@ -321,7 +327,8 @@ select option{color:var(--text);background:var(--surface)}
             <div class="uz-sub">.csv · .tsv · .txt · opcional</div>
             <div class="uz-file" id="uz-extra-name"></div>
           </div>
-          <input class="w-extra-desc" id="extra-desc" type="text" placeholder="¿Qué es este archivo y qué querés saber de él?" maxlength="300">
+          <button class="uz-clear" id="uz-extra-clear" onclick="clearFile('extra')">🗑 Borrar archivo</button>
+          <input class="w-extra-desc" id="extra-desc" type="text" placeholder="¿Qué es este archivo y qué querés saber de él?" maxlength="300" style="margin-top:8px">
         </div>
 
       </div>
@@ -332,7 +339,8 @@ select option{color:var(--text);background:var(--surface)}
         <!-- DSAT from Sheet -->
         <div class="card w-section" style="margin-bottom:12px">
           <span class="w-label">DSATs — BAD CSAT</span>
-          <div class="csub" style="margin-bottom:8px">Se carga automáticamente desde el Sheet conectado</div>
+          <div class="csub" style="margin-bottom:8px">DSATs de la semana seleccionada · se filtra por columna Fecha</div>
+          <div id="dsat-week-range" style="font-size:11px;color:var(--primary);font-weight:600;margin-bottom:6px;display:none"></div>
           <div id="dsat-status" style="font-size:12px;color:var(--text3)">⏳ Esperando carga del dashboard...</div>
           <div class="dsat-preview" id="dsat-preview"></div>
         </div>
@@ -710,7 +718,9 @@ function onWeekSel(){
   W.kpiData=w;
   W.weekLabel=w.l+" ("+w.s+")";
   setChipReady("chip-kpi");
-  updateStatusChips()
+  updateStatusChips();
+  // Re-render DSAT filtered by this week
+  if(W.dsatParsed)renderDSATPreview(W.dsatParsed)
 }
 
 function syncWeeklyFromDash(){
@@ -746,11 +756,73 @@ function loadDSAT(){
 function renderDSATPreview(data){
   if(!data||data.length<2)return;
   var preview=document.getElementById("dsat-preview");
-  preview.style.display="block";
+  var statusEl=document.getElementById("dsat-status");
+  var rangeEl=document.getElementById("dsat-week-range");
+
+  // Find Fecha column index (column A = index 0)
   var headers=data[0];
-  var rows=data.slice(1,6); // show first 5 rows
-  preview.innerHTML="<div style='font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:600'>Primeras "+Math.min(data.length-1,5)+" filas de "+( data.length-1)+" totales</div>"+
-    rows.map(function(r){
+  var fechaIdx=0; // column A
+
+  // Parse week start date from selected week (dd/mm/yyyy)
+  var weekStart=null,weekEnd=null;
+  if(W.kpiData&&W.kpiData.s){
+    var parts=W.kpiData.s.trim().split("/");
+    if(parts.length===3){
+      // dd/mm/yyyy
+      weekStart=new Date(+parts[2],+parts[1]-1,+parts[0]);
+      weekEnd=new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate()+6);
+      weekEnd.setHours(23,59,59,999);
+    }
+  }
+
+  // Show week range label
+  if(weekStart&&weekEnd){
+    var fmt=function(d){return d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear()};
+    rangeEl.textContent="📅 "+fmt(weekStart)+" → "+fmt(weekEnd);
+    rangeEl.style.display="block";
+  }else{
+    rangeEl.style.display="none";
+  }
+
+  // Filter rows by date range
+  var filtered=data.slice(1).filter(function(row){
+    if(!weekStart)return true; // no filter if no week selected
+    var raw=(row[fechaIdx]||"").trim();
+    if(!raw)return false;
+    // Try dd/mm/yyyy
+    var p=raw.split("/");
+    var d=null;
+    if(p.length===3){
+      if(p[2].length===4)d=new Date(+p[2],+p[1]-1,+p[0]); // dd/mm/yyyy
+      else if(p[0].length===4)d=new Date(+p[0],+p[1]-1,+p[2]); // yyyy/mm/dd
+    }else{
+      // Try ISO or other formats
+      d=new Date(raw);
+    }
+    if(!d||isNaN(d.getTime()))return false;
+    return d>=weekStart&&d<=weekEnd;
+  });
+
+  var total=data.length-1;
+  var count=filtered.length;
+
+  if(count===0&&weekStart){
+    statusEl.textContent="⚠️ Sin DSATs para esta semana ("+total+" totales en el Sheet)";
+    setChipPending("chip-dsat");
+    preview.style.display="none";
+    return;
+  }
+
+  statusEl.textContent="✅ "+count+" DSATs de la semana"+(weekStart?" · "+total+" totales en el Sheet":"");
+  setChipReady("chip-dsat");
+
+  // Store filtered for payload
+  W.dsatFiltered={headers:headers,rows:filtered};
+
+  preview.style.display="block";
+  preview.innerHTML="<div style='font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:600'>Mostrando "+Math.min(count,5)+" de "+count+" DSATs de la semana</div>"+
+    filtered.slice(0,5).map(function(r){
       return'<div class="dsat-row">'+r.slice(0,4).join(" · ")+'</div>'
     }).join("")
 }
@@ -764,6 +836,9 @@ function handleFile(type,input){
   nameEl.style.display="block";
   document.getElementById("uz-"+type).classList.add("drag");
   setTimeout(function(){document.getElementById("uz-"+type).classList.remove("drag")},200);
+  // Show clear button
+  var clearBtn=document.getElementById("uz-"+type+"-clear");
+  if(clearBtn)clearBtn.style.display="block";
 
   var reader=new FileReader();
   reader.onload=function(e){
@@ -775,6 +850,23 @@ function handleFile(type,input){
     }})
   };
   reader.readAsText(file)
+}
+
+// Clear uploaded file
+function clearFile(type){
+  W[type]=null;
+  var nameEl=document.getElementById("uz-"+type+"-name");
+  nameEl.textContent="";
+  nameEl.style.display="none";
+  // Reset file input
+  var zone=document.getElementById("uz-"+type);
+  var input=zone.querySelector("input[type=file]");
+  if(input)input.value="";
+  // Hide clear button
+  var clearBtn=document.getElementById("uz-"+type+"-clear");
+  if(clearBtn)clearBtn.style.display="none";
+  setChipPending("chip-"+type);
+  updateStatusChips()
 }
 
 // Status chips helpers
@@ -815,10 +907,15 @@ function buildWeeklyPayload(){
     historico_semanas:S.weeks.slice(-8).map(function(wk){
       return{label:wk.l,fecha:wk.s,csat:wk.csat,sla:wk.sla,ttr:wk.ttr,incoming:wk.inc}
     }),
-    analisis_dsats:W.dsatParsed?{
+    analisis_dsats:W.dsatFiltered?{
+      row_count:W.dsatFiltered.rows.length,
+      semana:W.weekLabel,
+      headers:W.dsatFiltered.headers||[],
+      data:W.dsatFiltered.rows.slice(0,100)
+    }:W.dsatParsed?{
       row_count:W.dsatParsed.length-1,
       headers:W.dsatParsed[0]||[],
-      data:W.dsatParsed.slice(1,51) // cap at 50 rows
+      data:W.dsatParsed.slice(1,51)
     }:null,
     deep_dive_topicos:W.topics?{
       filename:W.topics.filename,
