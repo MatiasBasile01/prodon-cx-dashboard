@@ -1119,6 +1119,7 @@ function copyJSONForClaude(){
     setTimeout(function(){confirm.style.display="none"},5000);
   })
 }
+function copyAnalysis(){
   var text=document.getElementById("analysis-content").innerText;
   navigator.clipboard.writeText(text).then(function(){
     var btn=document.querySelector(".analysis-copy");
