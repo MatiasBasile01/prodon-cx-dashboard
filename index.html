@@ -821,10 +821,22 @@ function renderDSATPreview(data){
   W.dsatFiltered={headers:headers,rows:filtered};
 
   preview.style.display="block";
-  preview.innerHTML="<div style='font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:600'>Mostrando "+Math.min(count,5)+" de "+count+" DSATs de la semana</div>"+
-    filtered.slice(0,5).map(function(r){
-      return'<div class="dsat-row">'+r.slice(0,4).join(" · ")+'</div>'
-    }).join("")
+  preview.innerHTML=
+    "<div style='font-size:10px;color:var(--text3);margin-bottom:6px;font-weight:600'>Mostrando "+Math.min(count,10)+" de "+count+" DSATs de la semana</div>"+
+    "<div style='display:grid;grid-template-columns:90px 1fr 1fr;gap:4px 10px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;padding-bottom:4px;border-bottom:1px solid var(--border);margin-bottom:4px'>"+
+      "<span>Fecha</span><span>Motivo</span><span>Categoría</span>"+
+    "</div>"+
+    filtered.slice(0,10).map(function(r){
+      var fecha=(r[0]||"").trim();
+      var motivo=(r[29]||"").trim();
+      var categoria=(r[31]||"").trim();
+      return'<div style="display:grid;grid-template-columns:90px 1fr 1fr;gap:4px 10px;padding:3px 0;border-bottom:1px solid var(--border);font-size:11px">'+
+        '<span style="color:var(--text3)">'+fecha+'</span>'+
+        '<span style="color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+motivo+'">'+motivo+'</span>'+
+        '<span style="color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+categoria+'">'+categoria+'</span>'+
+      '</div>'
+    }).join("")+
+    (count>10?"<div style='font-size:10px;color:var(--text3);margin-top:5px;text-align:center'>+"+(count-10)+" más no mostrados</div>":"")
 }
 
 // File upload handler
