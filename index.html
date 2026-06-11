@@ -384,10 +384,18 @@ select option{color:var(--text);background:var(--surface)}
       </div>
     </div>
 
-    <!-- Generate button -->
-    <button class="w-btn w-btn-primary" id="w-gen-btn" onclick="generateAnalysis()" style="margin-top:4px">
-      Generar análisis semanal con Claude
-    </button>
+    <!-- Buttons -->
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="w-btn" id="w-copy-btn" onclick="copyJSONForClaude()" style="background:var(--primary);color:#fff;flex:1">
+        📋 Copiar datos para Claude
+      </button>
+      <button class="w-btn" disabled title="Requiere API key configurada" style="background:var(--border);color:var(--text3);flex:1;cursor:not-allowed">
+        ⚡ Generar con IA (próximamente)
+      </button>
+    </div>
+    <div id="copy-confirm" style="display:none;text-align:center;font-size:12px;color:var(--green);font-weight:600;margin-top:8px">
+      ✅ JSON copiado — pegalo en Claude.ai para obtener el análisis
+    </div>
 
     <!-- Analysis output -->
     <div class="analysis-box" id="analysis-box">
@@ -1079,7 +1087,38 @@ async function generateAnalysis(){
   }
 }
 
-function copyAnalysis(){
+function copyJSONForClaude(){
+  if(!W.kpiData){alert("Seleccioná una semana para continuar.");return}
+  var ctx=document.getElementById("w-context").value.trim();
+  if(ctx.length<10){alert("Escribí al menos un poco de contexto de la semana.");return}
+
+  var payload=buildWeeklyPayload();
+  var prompt="Sos el asistente de análisis semanal de métricas del equipo de CX de Tiendanube.\n\n"+
+    "Analizá la siguiente data semanal y generá un reporte ejecutivo con estas secciones:\n"+
+    "1. 🚦 Semáforo de KPIs (tabla con valor, vs target, tendencia)\n"+
+    "2. 📊 Análisis de la semana (narrativa cruzando métricas, tópicos y DSATs)\n"+
+    "3. 🔴 DSATs — puntos críticos (principales motivos de insatisfacción)\n"+
+    "4. 💡 Acciones recomendadas (3-5 acciones concretas y priorizadas)\n"+
+    "5. 📝 Resumen ejecutivo (3 líneas para Slack)\n\n"+
+    "DATA:\n"+JSON.stringify(payload,null,2);
+
+  navigator.clipboard.writeText(prompt).then(function(){
+    var confirm=document.getElementById("copy-confirm");
+    confirm.style.display="block";
+    setTimeout(function(){confirm.style.display="none"},5000);
+  }).catch(function(){
+    // Fallback for browsers that don't support clipboard API
+    var ta=document.createElement("textarea");
+    ta.value=prompt;
+    ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    var confirm=document.getElementById("copy-confirm");
+    confirm.style.display="block";
+    setTimeout(function(){confirm.style.display="none"},5000);
+  })
+}
   var text=document.getElementById("analysis-content").innerText;
   navigator.clipboard.writeText(text).then(function(){
     var btn=document.querySelector(".analysis-copy");
