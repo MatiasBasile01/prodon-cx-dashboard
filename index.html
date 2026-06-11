@@ -354,6 +354,25 @@ select option{color:var(--text);background:var(--surface)}
           </select>
         </div>
 
+        <!-- Team filter -->
+        <div class="card w-section" style="margin-bottom:12px">
+          <span class="w-label">Equipos</span>
+          <div class="csub" style="margin-bottom:8px">Filtrá los DSATs por equipo · columna Prev_Group</div>
+          <div id="team-dropdown-wrap" style="position:relative">
+            <button id="team-dropdown-btn" onclick="toggleTeamDropdown()" style="width:100%;padding:8px 12px;font-size:13px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between">
+              <span id="team-btn-label">Todos los equipos</span>
+              <span style="font-size:10px;color:var(--text3)">▼</span>
+            </button>
+            <div id="team-dropdown-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-sm);box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:100;max-height:260px;overflow-y:auto;padding:6px 0">
+              <div style="padding:6px 12px;border-bottom:1px solid var(--border);display:flex;gap:8px">
+                <button onclick="selectAllTeams(true)" style="flex:1;font-size:11px;font-weight:600;padding:4px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--primary-l);color:var(--primary);cursor:pointer">Todos</button>
+                <button onclick="selectAllTeams(false)" style="flex:1;font-size:11px;font-weight:600;padding:4px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer">Ninguno</button>
+              </div>
+              <div id="team-checkboxes" style="padding:4px 0"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Context -->
         <div class="card w-section" style="margin-bottom:0">
           <span class="w-label">Contexto de la semana</span>
@@ -785,30 +804,37 @@ function renderDSATPreview(data){
     rangeEl.style.display="none";
   }
 
-  // Filter rows by date range
+  // Filter rows by date range AND team
   var filtered=data.slice(1).filter(function(row){
-    if(!weekStart)return true; // no filter if no week selected
-    var raw=(row[fechaIdx]||"").trim();
-    if(!raw)return false;
-    // Try dd/mm/yyyy
-    var p=raw.split("/");
-    var d=null;
-    if(p.length===3){
-      if(p[2].length===4)d=new Date(+p[2],+p[1]-1,+p[0]); // dd/mm/yyyy
-      else if(p[0].length===4)d=new Date(+p[0],+p[1]-1,+p[2]); // yyyy/mm/dd
-    }else{
-      // Try ISO or other formats
-      d=new Date(raw);
+    // Date filter
+    if(weekStart){
+      var raw=(row[fechaIdx]||"").trim();
+      if(!raw)return false;
+      var p=raw.split("/");
+      var d=null;
+      if(p.length===3){
+        if(p[2].length===4)d=new Date(+p[2],+p[1]-1,+p[0]);
+        else if(p[0].length===4)d=new Date(+p[0],+p[1]-1,+p[2]);
+      }else{d=new Date(raw)}
+      if(!d||isNaN(d.getTime()))return false;
+      if(d<weekStart||d>weekEnd)return false;
     }
-    if(!d||isNaN(d.getTime()))return false;
-    return d>=weekStart&&d<=weekEnd;
+    // Team filter (column I = index 8)
+    if(selectedTeams.length>0&&selectedTeams.length<TEAMS.length){
+      var team=(row[8]||"").trim();
+      if(selectedTeams.indexOf(team)<0)return false;
+    }
+    return true;
   });
 
   var total=data.length-1;
   var count=filtered.length;
 
-  if(count===0&&weekStart){
-    statusEl.textContent="⚠️ Sin DSATs para esta semana ("+total+" totales en el Sheet)";
+  if(count===0){
+    var msg=weekStart?"⚠️ Sin DSATs para esta semana":"⚠️ Sin DSATs";
+    if(selectedTeams.length<TEAMS.length)msg+=" con los equipos seleccionados";
+    msg+=" ("+total+" totales en el Sheet)";
+    statusEl.textContent=msg;
     setChipPending("chip-dsat");
     preview.style.display="none";
     return;
@@ -881,7 +907,59 @@ function clearFile(type){
   updateStatusChips()
 }
 
-// Status chips helpers
+// ── Team filter ──
+var TEAMS=[
+  "[AR] BiDo","[AR] Chat Nube","[AR] Downtime","[AR] Envio Nube",
+  "[AR] Marketing Nube","[AR] Partners","[AR] Partners Pagos",
+  "[AR] PN - Cuenta y Riesgo","[AR] PN - Riesgo y activación SMBs",
+  "[AR] PN - Success","[AR] PN - Transacciones","[AR] ProdOn",
+  "[AR] Shipay","[AR] Social + MKT","[AR] Success","[BR] Nuvem Marketing"
+];
+var selectedTeams=TEAMS.slice(); // all selected by default
+
+function buildTeamCheckboxes(){
+  var wrap=document.getElementById("team-checkboxes");
+  wrap.innerHTML=TEAMS.map(function(t){
+    return'<label style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:12px;color:var(--text);transition:background .1s" '+
+      'onmouseover="this.style.background=\'var(--bg)\'" onmouseout="this.style.background=\'transparent\'">'+
+      '<input type="checkbox" checked value="'+t+'" onchange="onTeamChange()" '+
+      'style="width:13px;height:13px;accent-color:var(--primary);cursor:pointer">'+
+      t+'</label>'
+  }).join("");
+}
+
+function toggleTeamDropdown(){
+  var menu=document.getElementById("team-dropdown-menu");
+  menu.style.display=menu.style.display==="none"?"block":"none";
+}
+
+// Close dropdown when clicking outside
+document.addEventListener("click",function(e){
+  var wrap=document.getElementById("team-dropdown-wrap");
+  if(wrap&&!wrap.contains(e.target)){
+    document.getElementById("team-dropdown-menu").style.display="none";
+  }
+});
+
+function selectAllTeams(val){
+  document.querySelectorAll("#team-checkboxes input[type=checkbox]").forEach(function(cb){cb.checked=val});
+  onTeamChange();
+}
+
+function onTeamChange(){
+  selectedTeams=[];
+  document.querySelectorAll("#team-checkboxes input[type=checkbox]").forEach(function(cb){
+    if(cb.checked)selectedTeams.push(cb.value);
+  });
+  // Update button label
+  var lbl=document.getElementById("team-btn-label");
+  if(selectedTeams.length===TEAMS.length)lbl.textContent="Todos los equipos";
+  else if(selectedTeams.length===0)lbl.textContent="Sin equipos seleccionados";
+  else if(selectedTeams.length===1)lbl.textContent=selectedTeams[0];
+  else lbl.textContent=selectedTeams.length+" equipos seleccionados";
+  // Re-render DSAT preview with new filter
+  if(W.dsatParsed)renderDSATPreview(W.dsatParsed);
+}
 function setChipReady(id){var c=document.getElementById(id);if(c){c.classList.add("ready");c.classList.remove("loading-chip")}}
 function setChipLoading(id){var c=document.getElementById(id);if(c){c.classList.add("loading-chip");c.classList.remove("ready")}}
 function setChipPending(id){var c=document.getElementById(id);if(c){c.classList.remove("ready","loading-chip")}}
@@ -1011,6 +1089,7 @@ function copyAnalysis(){
 }
 
 // ── Init ──
+buildTeamCheckboxes();
 loadData();
 </script>
 </body>
